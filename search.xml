@@ -39,7 +39,17 @@
 <p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p>
 <h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
+<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a>  </p>
+<h2 id="视频"><a href="#视频" class="headerlink" title="视频"></a>视频</h2><div style="position: relative; width: 100%; height: 0; padding-bottom: 70%;"><iframe src="//player.bilibili.com/player.html?aid=934886232&bvid=BV1WM4y1c75J&cid=463818110&page=1&high_quality=1" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true" style="position: absolute; width: 75%; 
+height: 75%; left: 90px; top: 65px;"> </iframe></div>  
+
+
+
+<h2 id="音乐"><a href="#音乐" class="headerlink" title="音乐"></a>音乐</h2><div style="position: relative; width: 100%; height: 0; padding-bottom: 20%;"><iframe frameborder="no" border="0" marginwidth="0" marginheight="0" width="330" height="86" src="//music.163.com/outchain/player?type=2&id=27646786&auto=0&height=66" style="position: absolute; width: 75%; 
+height: 75%; left: 90px; top: 0;"> </iframe></div>
+
+
+
 ]]></content>
       <categories>
         <category>分类2</category>
