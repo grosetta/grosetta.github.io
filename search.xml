@@ -1,6 +1,88 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>pymol常用命令——持续更新</title>
+    <url>/2021/12/31/pymol%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4%E2%80%94%E2%80%94%E6%8C%81%E7%BB%AD%E6%9B%B4%E6%96%B0/</url>
+    <content><![CDATA[<p>pymol日常高频使用场景及对应的commond line</p>
+<span id="more"></span>
+
+<ul>
+<li><font color="#0000CD">设置球棍模型棍的粗细</font>  </li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&gt;&gt; set stick_redius=0.25</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><font color="#0000CD">设置球直径的大小</font>  </li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&gt;&gt; set sphere_scale=0.5</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><font color="#0000CD">将配体分子周围范围5A范围内的残基显示出来（sticks模型）</font>  </li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&gt;&gt; show sticks, byres &lt;protein&gt; within 5 of &lt;ligand&gt;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><font color="#0000CD">将配体分子周围范围5A范围内的残基显示出来（sticks模型）,并保存到pocket object中</font>  </li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&gt;&gt; create pocket, byres &lt;protein&gt; within 5 of &lt;ligand&gt;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><font color="#0000CD">制作动画</font>  </li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&gt;&gt; mset 1 x30                 #定义一个30帧动画</span><br><span class="line">&gt;&gt; frame 1                    #定义第一帧</span><br><span class="line">&gt;&gt; #调整观察角度转到一个合适的角度</span><br><span class="line">&gt;&gt; mview store                #存储该视角为第一帧</span><br><span class="line">&gt;&gt; frame 30                   #定义第30帧</span><br><span class="line">&gt;&gt; #调整换个角度     </span><br><span class="line">&gt;&gt; mview reinterpolate        #让1到30帧平滑过渡</span><br><span class="line">&gt;&gt; mplay                      #预览效果</span><br><span class="line">&gt;&gt; set ray_trace_frames=1     #输出时渲染每一帧</span><br><span class="line">&gt;&gt; set cache_frames=1</span><br><span class="line">&gt;&gt; mpng mov                   #将每一帧输出为图片（输出路径和你打开的pdb所在路径一致）</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><font color="#0000CD">导入MD轨迹</font>  </li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&gt;&gt; load filename.pdb, objectname     #导入初始构象pdb文件</span><br><span class="line">&gt;&gt; load_traj traj.xtc, objectname, start=1, stop=10001, interval=10</span><br><span class="line">&gt;&gt; save movie as movie.mpg           #保存为视频</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><font color="#0000CD">连接两个原子</font>  </li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&gt;&gt; select object1, id 2518     #选择原子序号为2518的原子，并定义为object1</span><br><span class="line">&gt;&gt; select object2, id 1487     #选择原子序号为1487的原子，并定义为object2</span><br><span class="line">&gt;&gt; bond object1, object2       #连接两个object</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><font color="#0000CD">center_of_mass脚本使用</font>  </li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&gt;&gt; import center_of_mass</span><br><span class="line">&gt;&gt; com sele,state=r1</span><br><span class="line">&gt;&gt; set sphere_scale,0.15</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+]]></content>
+      <categories>
+        <category>计算机相关</category>
+      </categories>
+      <tags>
+        <tag>pymol</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Shell编程常用命令——持续更新</title>
+    <url>/2021/12/31/shell_commond/</url>
+    <content><![CDATA[<p>Shell编程常用命令，毕竟非科班出身，没必要非得全部记住，需要时能找出来用就行。</p>
+<span id="more"></span>
+
+<h2 id="Bash环境中的常用命令"><a href="#Bash环境中的常用命令" class="headerlink" title="Bash环境中的常用命令"></a>Bash环境中的常用命令</h2><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="awk相关命令"><a href="#awk相关命令" class="headerlink" title="awk相关命令"></a>awk相关命令</h2><ul>
+<li><font color="#0000CD">删除指定的列</font>  </li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ awk <span class="string">&#x27;&#123;$Num=&quot;&quot;; print $0&#125;&#x27;</span> filename</span><br></pre></td></tr></table></figure>
+
+<h2 id="sed相关命令"><a href="#sed相关命令" class="headerlink" title="sed相关命令"></a>sed相关命令</h2><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
+
+]]></content>
+      <categories>
+        <category>计算机相关</category>
+      </categories>
+      <tags>
+        <tag>shell</tag>
+        <tag>编程</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>293细胞培养</title>
     <url>/2021/12/31/293cell/</url>
     <content><![CDATA[<p>最近在做293细胞给药检测荧光变化的实验，以往只做过昆虫悬浮细胞培养，第一次接触贴壁细胞说实话内心还是有些犯怵的。<br>结合在网上搜刮到的一些资料和近几天实操结果记录一下心得体会。</p>
@@ -47,7 +129,7 @@
 </ul>
 <p>像293这种容易转染的细胞第四步4h足够了，因为PEI这玩意儿还是很毒的，能少存在一会儿最好。<br>此外在有PEI存在培养基的情况下万不可添加抗生素，看网上说PEI改变细胞膜通透性，抗生素若存在的话进入细胞中影响细胞生长。  </p>
 </blockquote>
-<p>相关帖子：<a href="https://zhuanlan.zhihu.com/p/163109490">知乎：293protocal</a> 、 <a href="https://www.biomart.cn/experiment/review/92.htm">丁香园：PEI转染</a></p>
+<p>相关帖子：<a href="https://zhuanlan.zhihu.com/p/163109490"><font color="#0000FF">知乎:293protocal</font></a> 、 <a href="https://www.biomart.cn/experiment/review/92.htm"><font color="#0000FF">丁香园:PEI转染</font></a></p>
 ]]></content>
       <categories>
         <category>实验相关</category>
@@ -62,7 +144,7 @@
     <url>/2021/12/31/pdb_format/</url>
     <content><![CDATA[<p>description: pdb文件格式要求比较严格，做到知己知彼方能应对各种bug。</p>
 <span id="more"></span>
-<p>pdb文件下载地址<a href="https://www1.rcsb.org/">RCSB</a></p>
+<p>pdb文件下载地址<a href="https://www1.rcsb.org/"><font color="#0000FF">RCSB</font></a></p>
 <h2 id="格式示例"><a href="#格式示例" class="headerlink" title="格式示例"></a>格式示例</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">#标题部分  </span><br><span class="line">HEADER #分子类型，结构公布日期，ID号             </span><br><span class="line">TITLE  #哪个大分子，分辨率是多少             </span><br><span class="line">COMPND #整个文件中包含哪些分子类型：蛋白、核酸、水、抗衡离子                                                            </span><br><span class="line">SOURCE #以上分子的来源                                                            </span><br><span class="line">KEYWDS #关键词                                                   </span><br><span class="line">EXPDTA #获取结构所用的方法：X-ray/NMR/冷冻电镜                                                    </span><br><span class="line">AUTHOR #结构测定者                                       </span><br><span class="line">REVDAT #修订日期                                                                                  </span><br><span class="line">JRNL   #文章发表的期刊/DOI号等信息                                                              </span><br><span class="line">REMARK #各种杂七杂八的信息，日常基本用不到                                                                                             </span><br><span class="line">#一级结构信息</span><br><span class="line">DBREF  #其他数据库的相关记录            </span><br><span class="line">SEQRES #序列信息</span><br><span class="line">#杂项</span><br><span class="line">HETATM #非标准残基名称</span><br><span class="line">FORMUL #非标准残基的化学式                                                     </span><br><span class="line">#二级结构</span><br><span class="line">HELIX  #α螺旋   </span><br><span class="line">SHEET  #β折叠                                                                               </span><br><span class="line">TURN  #转角</span><br><span class="line">#连接信息注释</span><br><span class="line">SSBOND #二硫键</span><br><span class="line">HYDBND #氢键</span><br><span class="line">SLTBRG #盐桥</span><br><span class="line">#晶胞参数</span><br><span class="line">CRYST1   #晶胞参数，一般只有x-ray测得的结构才有这一项</span><br><span class="line">ORIGX1   #直角-PDB坐标                                             </span><br><span class="line">SCALE1   #直角-晶体分数坐标。给出数据中直角坐标向晶体分数坐标的变换因子                         </span><br><span class="line"></span><br><span class="line">#坐标（核心部分）</span><br><span class="line">--------------------------------------------------------------------------------------------------------------------------------------------</span><br><span class="line">#1-6 左对齐 ATOM/HETATM</span><br><span class="line">#7-11右对齐 原子序号</span><br><span class="line">#13-16左对齐 原子名称</span><br><span class="line">#18-20       残基名称</span><br><span class="line">#22          链名</span><br><span class="line">#23-26       残基序号</span><br><span class="line">#31-38右对齐  x坐标值（单位为A°）</span><br><span class="line">#39-46右对齐  y坐标值</span><br><span class="line">#47-54右对齐  z坐标值</span><br><span class="line">#55-60右对齐  占有率（这个数值可以是0-1间任意一个数，数字为1表示原子坐标就在这里，0表示原子不在这里，在这之间表示原子可能在这里，越接近0表示可能性就越小）</span><br><span class="line">#61-66右对齐  温度因子（描述了电子密度的弥散程度） #77-78右对齐  元素符号 </span><br><span class="line">-------------------------------------------------------------------------------------------------------------------------------------------------------------------------    </span><br><span class="line">ATOM    594  N   GLY A  75      41.165  35.531  31.898  1 36.31           N  </span><br><span class="line">ATOM    595  CA  GLY A  75      41.845  36.550  32.686  1 36.07           C  </span><br><span class="line">ATOM    596  C   GLY A  75      41.251  37.941  32.588  1 36.16           C  </span><br><span class="line">ATOM    597  O   GLY A  75      41.102  38.523  31.500  1 36.26           O  </span><br><span class="line">ATOM    598  N   GLY A  76      40.946  38.472  33.757  1 36.05           N  </span><br><span class="line">ATOM    599  CA  GLY A  76      40.373  39.813  33.944  1 36.19           C  </span><br><span class="line">ATOM    600  C   GLY A  76      40.031  39.992  35.432  1 36.20           C  </span><br><span class="line">ATOM    601  O   GLY A  76      38.933  40.525  35.687  1 36.13           O  </span><br><span class="line">ATOM    602  OXT GLY A  76      40.862  39.575  36.251  1 36.27           O  </span><br><span class="line">TER     603      GLY A  76  </span><br><span class="line">#TER表示一条链的结束                                                    </span><br><span class="line">HETATM  604  O   HOH A  77      45.747  30.081  19.708  1 12.43           O  </span><br><span class="line">HETATM  605  O   HOH A  78      19.168  31.868  17.050  1 12.65           O  </span><br><span class="line"></span><br><span class="line">CONECT  #原子间连接信息</span><br><span class="line">MASTER  #版权所有者     </span><br><span class="line">END     #标志整个文件结束  </span><br><span class="line"></span><br></pre></td></tr></table></figure>
 
 <h2 id="遇到过的恶心事"><a href="#遇到过的恶心事" class="headerlink" title="遇到过的恶心事"></a>遇到过的恶心事</h2><blockquote>
@@ -71,7 +153,7 @@
 <p><img src="/2021/12/31/pdb_format/pdb.png#pic_center"></p>
 ]]></content>
       <categories>
-        <category>计算机相关的</category>
+        <category>计算机相关</category>
       </categories>
       <tags>
         <tag>pdb</tag>
