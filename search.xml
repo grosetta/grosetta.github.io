@@ -1,6 +1,135 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>Gromacs处理血红素</title>
+    <url>/2021/12/31/gromacs%E5%A4%84%E7%90%86%E8%A1%80%E7%BA%A2%E7%B4%A0/</url>
+    <content><![CDATA[<p>适用于对配位化合物的处理</p>
+<span id="more"></span>
+<h2 id="Atechamber做有机分子拓扑"><a href="#Atechamber做有机分子拓扑" class="headerlink" title="Atechamber做有机分子拓扑"></a>Atechamber做有机分子拓扑</h2><ul>
+<li>用pymol从血红蛋白中保存出血红素分子为<a href="HEM.pdb"><font color="#DC143C">HEM.pdb</font></a>(加氢)</li>
+<li>复制一份HEM.pdb为<a href="HEM_fix.pdb"><font color="#DC143C">HEM_fix.pdb</font></a>。用pymol打开HEM_fix.pdb,删除铁离子，另存为<a href="HEM_fix.mol2"><font color="#DC143C">HEM_fix.mol2</font></a>(原本的HEM.pdb千万保留)。</li>
+<li>用文本编辑器打开HEM.pdb，找到铁离子所在的行，牢记其三维坐标:</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">3.572  -13.621  5.453</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2021/12/31/gromacs%E5%A4%84%E7%90%86%E8%A1%80%E7%BA%A2%E7%B4%A0/figure1.png#pic_center"></p>
+<ul>
+<li>生成有机分子部分的拓扑</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ python acpype.py -i HEM_fix.mol2</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2021/12/31/gromacs%E5%A4%84%E7%90%86%E8%A1%80%E7%BA%A2%E7%B4%A0/figure2.png#pic_center"></p>
+<blockquote>
+<p>这时工作路径下会出现一个HEM_fix.acpype的文件夹，在里面找到<a href="HEM_fix.acpype/HEM_fix_GMX.itp"><font color="#DC143C">HEM_fix_GMX.itp</font></a> 、<a href="HEM_fix.acpype/HEM_fix_GMX.gro"><font color="#DC143C">HEM_fix_GMX.gro</font></a>,<br>为了之后说明方便，分别改名为<a href="HEM.itp"><font color="#DC143C">HEM.itp</font></a> 、<a href="HEM.gro"><font color="#DC143C">HEM.gro</font></a>,并移动到上一级路径。</p>
+</blockquote>
+<p><img src="/2021/12/31/gromacs%E5%A4%84%E7%90%86%E8%A1%80%E7%BA%A2%E7%B4%A0/figure3.png#pic_center"></p>
+<p><img src="/2021/12/31/gromacs%E5%A4%84%E7%90%86%E8%A1%80%E7%BA%A2%E7%B4%A0/figure4.png#pic_center"></p>
+<ul>
+<li>用文本编辑器打开HEM.gro,定位到最后一行，添加:</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1   HEM     FE   77   0.357  -1.362   0.545</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><strong>pdb坐标单位是A，gro文件坐标单位是<font color="#DC143C">nm</font>,所以pdb文件坐标就数值上是gro文件的<font color="#DC143C">10倍</font>。</strong><br><strong>对应坐标为0.357  -1.362   0.545</strong><br>此外在文件开始位置总原子数76改为77</p>
+</blockquote>
+<p><img src="/2021/12/31/gromacs%E5%A4%84%E7%90%86%E8%A1%80%E7%BA%A2%E7%B4%A0/figure5.png#pic_center"></p>
+<p><img src="/2021/12/31/gromacs%E5%A4%84%E7%90%86%E8%A1%80%E7%BA%A2%E7%B4%A0/figure6.png#pic_center"></p>
+<p>&nbsp;</p>
+<h2 id="添加铁离子参数"><a href="#添加铁离子参数" class="headerlink" title="添加铁离子参数"></a>添加铁离子参数</h2><ul>
+<li>查找铁离子参数</li>
+</ul>
+<blockquote>
+<p>打开以下路径的文件（需要安装ambertools）:</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">$AMBERHOME/dat/leap/parm/frcmod.ions234lm_126_tip3p</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>找到三价铁离子所在的行:</p>
+</blockquote>
+<p><img src="/2021/12/31/gromacs%E5%A4%84%E7%90%86%E8%A1%80%E7%BA%A2%E7%B4%A0/figure7.png#pic_center"></p>
+<blockquote>
+<p>这两个参数分别是Rmin/2, ε<br>简单地说，Rmin表示两原子间能量最小的距离（单位A，即0.1nm），ε表示最小能量（单位时kal/mol）,二者满足以下关系式:</p>
+</blockquote>
+<center>
+<img src="/2021/12/31/gromacs%E5%A4%84%E7%90%86%E8%A1%80%E7%BA%A2%E7%B4%A0/figure8.png" width="50%" height="50%">
+</center>
+
+<blockquote>
+<p>但gromacs所用力场用的参数分别是 σ，ε,<br>σ表示两原子间能量最小的距离(单位为nm)，ε表示最小能量（单位时kJ/mol）。二者满足以下关系式：</p>
+</blockquote>
+<center>
+<img src="/2021/12/31/gromacs%E5%A4%84%E7%90%86%E8%A1%80%E7%BA%A2%E7%B4%A0/figure9.png" width="50%" height="50%">
+</center>
+
+<blockquote>
+<p>上述两式相等，简化为:</p>
+</blockquote>
+<p><img src="/2021/12/31/gromacs%E5%A4%84%E7%90%86%E8%A1%80%E7%BA%A2%E7%B4%A0/figure10.png#pic_center"></p>
+<blockquote>
+<p>带入公式计算(注意单位统一)结果为：<br><strong>（1kal/mol=4.186798kJ/mol）</strong></p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">σ=0.2469572=2.46957e-01(nm)</span><br><span class="line">ε=0.05681891=5.68189e-02(kJ/mol)</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>在拓扑文件[atomtypes]栏最后一行添加三价铁离子，除了上述计算的两个参数及原子名外，其余内容可以复制上一行。</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">[ atomtypes ]</span><br><span class="line">;name   bond_type     mass     charge   ptype   sigma         epsilon       Amb</span><br><span class="line"> c3       c3          0.00000  0.00000   A     3.39967e-01   4.57730e-01 ; 1.91  0.1094</span><br><span class="line"> nc       nc          0.00000  0.00000   A     3.25000e-01   7.11280e-01 ; 1.82  0.1700</span><br><span class="line"> c        c           0.00000  0.00000   A     3.39967e-01   3.59824e-01 ; 1.91  0.0860</span><br><span class="line"> cf       cf          0.00000  0.00000   A     3.39967e-01   3.59824e-01 ; 1.91  0.0860</span><br><span class="line"> cc       cc          0.00000  0.00000   A     3.39967e-01   3.59824e-01 ; 1.91  0.0860</span><br><span class="line"> o        o           0.00000  0.00000   A     2.95992e-01   8.78640e-01 ; 1.66  0.2100</span><br><span class="line"> cd       cd          0.00000  0.00000   A     3.39967e-01   3.59824e-01 ; 1.91  0.0860</span><br><span class="line"> hc       hc          0.00000  0.00000   A     2.64953e-01   6.56888e-02 ; 1.49  0.0157</span><br><span class="line"> ha       ha          0.00000  0.00000   A     2.59964e-01   6.27600e-02 ; 1.46  0.0150</span><br><span class="line"> fe       fe          0.00000  0.00000   A     2.46957e-01   5.68189e-02 ;1.386  0.01357097</span><br><span class="line"> </span><br><span class="line"> [ moleculetype ]</span><br><span class="line">name            nrexcl</span><br><span class="line"> HEM_fix          3</span><br><span class="line"></span><br><span class="line">[ atoms ]</span><br><span class="line">。。。</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>计算参数也可以登录**<a href="https://jerkwin.github.io/gmxtool/calc/calc.html"><font color="#0000FF">gmxtool</font></a>在线计算</p>
+</blockquote>
+<ul>
+<li>向拓扑中添加铁离子电荷</li>
+</ul>
+<blockquote>
+<p>在[atoms]栏最后一行添加下面一行:</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#序号 原子类型 分子序号 分子名称 原子名称（和gro文件保持一致） 电荷数  相对原子质量</span><br><span class="line">77   fe     1   HEM    FE   77     3.000000     55.85000 </span><br></pre></td></tr></table></figure>
+<p>&nbsp;</p>
+<h2 id="对铁离子进行约束"><a href="#对铁离子进行约束" class="headerlink" title="对铁离子进行约束"></a>对铁离子进行约束</h2><ul>
+<li>添加铁离子限制条件（距离限制)</li>
+</ul>
+<blockquote>
+<p>首先用vmd打开HEM.gro文件，确定和铁离子络合的四个氮原子在gro文件中的序号，再测出每一个氮原子到铁离子的距离。<br><strong>注意：这里测出的距离单位是A（即0.1nm）</strong></p>
+</blockquote>
+<center>
+<img src="/2021/12/31/gromacs%E5%A4%84%E7%90%86%E8%A1%80%E7%BA%A2%E7%B4%A0/figure11.png" width="50%" height="50%">
+</center>
+
+<blockquote>
+<p>在HEM.top文件[ bonds ]结束处, 添加一个新的栏目：[ constraints ], 添加如下内容:</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">[ constraints ]</span><br><span class="line">77  5 2 0.20</span><br><span class="line">77 10 2 0.20</span><br><span class="line">77 42 2 0.20</span><br><span class="line">77 13 2 0.20 </span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>前两列表示两个原子的序号（gro文件中的）。<br>第三列可以选择是1或是2，简单地说，如果你觉得配位键和共价键更像一点，则选1；否则就选2。<br>二者没有绝对正确，如果后续模拟有异常，可以尝试改成另一个。<br>第四列表示限制两个原子的距离（单位是nm），因此我们前面测量个的原子距离需要除10。</p>
+</blockquote>
+<blockquote>
+<p>至此，对血红素的处理大功告成，如果后续模拟过程中铁离子逃逸，可以尝试调整限制距离。<br>如果你想让血红素维持一个更加标准的平面构象，可以多加几个距离限制（如限制两两氮原子）。</p>
+</blockquote>
+<p>&nbsp;</p>
+<h2 id="将血红素拓扑include到蛋白拓扑内"><a href="#将血红素拓扑include到蛋白拓扑内" class="headerlink" title="将血红素拓扑include到蛋白拓扑内"></a>将血红素拓扑include到蛋白拓扑内</h2><blockquote>
+<p>以下是血红素单独在水环境下的拓扑示例：（注意include的顺序和位置极其容易出错，处理时要万分小心！！！</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#include &quot;amber99sb-ildn.ff/forcefield.itp&quot;   这是总力场（如果不加载总力场而只加载水分子或离子力场会报错）</span><br><span class="line">[ atomtypes ]</span><br><span class="line">;name   bond_type     mass     charge   ptype   sigma         epsilon       Amb</span><br><span class="line"> c3       c3          0.00000  0.00000   A     3.39967e-01   4.57730e-01 ; 1.91  0.1094</span><br><span class="line"> nc       nc          0.00000  0.00000   A     3.25000e-01   7.11280e-01 ; 1.82  0.1700</span><br><span class="line"> c        c           0.00000  0.00000   A     3.39967e-01   3.59824e-01 ; 1.91  0.0860</span><br><span class="line"> cf       cf          0.00000  0.00000   A     3.39967e-01   3.59824e-01 ; 1.91  0.0860</span><br><span class="line"> cc       cc          0.00000  0.00000   A     3.39967e-01   3.59824e-01 ; 1.91  0.0860</span><br><span class="line"> o        o           0.00000  0.00000   A     2.95992e-01   8.78640e-01 ; 1.66  0.2100</span><br><span class="line"> cd       cd          0.00000  0.00000   A     3.39967e-01   3.59824e-01 ; 1.91  0.0860</span><br><span class="line"> hc       hc          0.00000  0.00000   A     2.64953e-01   6.56888e-02 ; 1.49  0.0157</span><br><span class="line"> ha       ha          0.00000  0.00000   A     2.59964e-01   6.27600e-02 ; 1.46  0.0150</span><br><span class="line"> fe       fe          0.00000  0.00000   A     2.46957e-01   5.68189e-02 ; 1.386 0.0136 </span><br><span class="line"></span><br><span class="line">#include &quot;HEM.itp&quot;     #加载前面做好的血红素itp文件</span><br><span class="line">#include &quot;amber99sb-ildn.ff/tip3p.itp&quot; #加载水分子力场</span><br><span class="line">[ system ]</span><br><span class="line">HEM_fix in water</span><br><span class="line"></span><br><span class="line">[ molecules ]</span><br><span class="line">HEM_fix          1     </span><br><span class="line">SOL              1042</span><br></pre></td></tr></table></figure>
+
+<p>&nbsp;<br><strong>关注微信公众号grosetta, 后台回复” <font color="#DC143C">HEM</font> “获取上文提到的所有文件。</strong></p>
+]]></content>
+      <categories>
+        <category>计算机相关</category>
+      </categories>
+      <tags>
+        <tag>gromacs</tag>
+        <tag>离子约束</tag>
+        <tag>血红素</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title></title>
+    <url>/2021/12/31/gromacs%E6%89%80%E6%9C%89%E7%A8%8B%E5%BA%8F/</url>
+    <content><![CDATA[]]></content>
+  </entry>
+  <entry>
     <title>pymol常用命令——持续更新</title>
     <url>/2021/12/31/pymol%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4%E2%80%94%E2%80%94%E6%8C%81%E7%BB%AD%E6%9B%B4%E6%96%B0/</url>
     <content><![CDATA[<p>pymol日常高频使用场景及对应的commond line</p>

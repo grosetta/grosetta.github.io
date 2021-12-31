@@ -1,0 +1,14 @@
+; HEM_fix_GMX_OPLS.top created by acpype (v: 2020-11-11T22:59:34CET) on Sat Aug 28 14:21:48 2021
+
+; Include forcefield parameters
+#include "ffoplsaa.itp"
+
+; Include HEM_fix_GMX.itp topology
+#include "HEM_fix_GMX.itp"
+
+[ system ]
+ HEM_fix
+
+[ molecules ]
+; Compound        nmols
+ HEM_fix          1     

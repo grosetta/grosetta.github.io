@@ -1,0 +1,155 @@
+HETATM    1  CAA HEM A 142      -0.333 -15.961   2.021  1.00 19.08           C  
+HETATM    2  CAB HEM A 142       6.431  -8.994   3.817  1.00 14.92           C  
+HETATM    3  CAC HEM A 142       6.613 -13.853  10.079  1.00 17.26           C  
+HETATM    4  CAD HEM A 142       0.569 -18.115   7.060  1.00 18.00           C  
+HETATM    5  NA  HEM A 142       2.277 -13.990   3.897  1.00 14.89           N  
+HETATM    6  CBA HEM A 142      -1.826 -15.774   2.153  1.00 25.41           C  
+HETATM    7  CBB HEM A 142       7.438  -8.524   2.842  1.00 17.45           C  
+HETATM    8  CBC HEM A 142       7.888 -14.477  10.234  1.00 14.94           C  
+HETATM    9  CBD HEM A 142       1.214 -19.387   6.604  1.00 20.73           C  
+HETATM   10  NB  HEM A 142       4.306 -11.995   4.383  1.00 13.64           N  
+HETATM   11  CGA HEM A 142      -2.570 -16.907   1.461  1.00 26.48           C  
+HETATM   12  CGD HEM A 142       0.204 -20.506   6.566  1.00 24.25           C  
+HETATM   13  ND  HEM A 142       2.854 -15.206   6.461  1.00 16.63           N  
+HETATM   14  CHA HEM A 142       1.149 -15.972   4.841  1.00 16.68           C  
+HETATM   15  CHB HEM A 142       2.911 -12.162   2.373  1.00 13.01           C  
+HETATM   16  CHC HEM A 142       5.997 -11.241   5.983  1.00 13.35           C  
+HETATM   17  CHD HEM A 142       4.315 -15.053   8.437  1.00 15.83           C  
+HETATM   18  CMA HEM A 142       0.774 -13.412   0.474  1.00 12.13           C  
+HETATM   19  CMB HEM A 142       4.477  -9.567   1.482  1.00 14.76           C  
+HETATM   20  CMC HEM A 142       7.789 -11.407   8.573  1.00 11.20           C  
+HETATM   21  CMD HEM A 142       2.672 -17.544   9.404  1.00 14.94           C  
+HETATM   22  C1A HEM A 142       1.364 -15.027   3.828  1.00 16.26           C  
+HETATM   23  C1B HEM A 142       3.892 -11.554   3.147  1.00 14.00           C  
+HETATM   24  C1C HEM A 142       5.833 -12.199   6.959  1.00 15.37           C  
+HETATM   25  C1D HEM A 142       3.284 -15.630   7.694  1.00 16.47           C  
+HETATM   26  O1A HEM A 142      -2.763 -16.808   0.233  1.00 28.77           O  
+HETATM   27  O1D HEM A 142      -0.423 -20.704   5.501  1.00 24.11           O  
+HETATM   28  C2A HEM A 142       0.674 -14.983   2.566  1.00 15.47           C  
+HETATM   29  C2B HEM A 142       4.624 -10.375   2.766  1.00 14.14           C  
+HETATM   30  C2C HEM A 142       6.632 -12.305   8.157  1.00 15.07           C  
+HETATM   31  C2D HEM A 142       2.509 -16.777   8.101  1.00 17.01           C  
+HETATM   32  O2A HEM A 142      -2.947 -17.894   2.138  1.00 27.97           O  
+HETATM   33  O2D HEM A 142       0.043 -21.177   7.612  1.00 25.46           O  
+HETATM   34  C3A HEM A 142       1.158 -13.919   1.874  1.00 16.17           C  
+HETATM   35  C3B HEM A 142       5.500 -10.102   3.793  1.00 13.99           C  
+HETATM   36  C3C HEM A 142       6.155 -13.380   8.861  1.00 14.87           C  
+HETATM   37  C3D HEM A 142       1.609 -17.035   7.106  1.00 16.03           C  
+HETATM   38  C4A HEM A 142       2.167 -13.294   2.710  1.00 14.29           C  
+HETATM   39  C4B HEM A 142       5.292 -11.134   4.794  1.00 14.60           C  
+HETATM   40  C4C HEM A 142       5.078 -13.939   8.083  1.00 15.38           C  
+HETATM   41  C4D HEM A 142       1.834 -16.047   6.065  1.00 15.01           C  
+HETATM   42  NC  HEM A 142       4.910 -13.211   6.930  1.00 14.54           N  
+HETATM   43 FE   HEM A 142       3.572 -13.621   5.453  1.00  0.00          FE  
+HETATM   44  H01 HEM A 142      -0.108 -16.917   2.494  1.00 19.08           H  
+HETATM   45  H02 HEM A 142       5.696  -8.214   3.619  1.00 14.92           H  
+HETATM   46  H03 HEM A 142       7.013  -9.168   4.722  1.00 14.92           H  
+HETATM   47  H04 HEM A 142       6.751 -12.927  10.638  1.00 17.26           H  
+HETATM   48  H05 HEM A 142       5.876 -14.582  10.416  1.00 17.26           H  
+HETATM   49  H06 HEM A 142       0.136 -18.254   8.051  1.00 18.00           H  
+HETATM   50  H07 HEM A 142      -0.221 -17.834   6.364  1.00 18.00           H  
+HETATM   51  H08 HEM A 142      -2.105 -14.831   1.683  1.00 25.41           H  
+HETATM   52  H09 HEM A 142      -2.094 -15.761   3.209  1.00 25.41           H  
+HETATM   53  H10 HEM A 142       8.369  -9.071   2.990  1.00 17.45           H  
+HETATM   54  H11 HEM A 142       7.073  -8.697   1.830  1.00 17.45           H  
+HETATM   55  H12 HEM A 142       7.616  -7.459   2.988  1.00 17.45           H  
+HETATM   56  H13 HEM A 142       8.606 -13.747  10.606  1.00 14.94           H  
+HETATM   57  H14 HEM A 142      -0.195 -15.835   0.947  1.00 19.08           H  
+HETATM   58  H15 HEM A 142       7.806 -15.300  10.944  1.00 14.94           H  
+HETATM   59  H16 HEM A 142       8.225 -14.860   9.271  1.00 14.94           H  
+HETATM   60  H17 HEM A 142       2.007 -19.651   7.304  1.00 20.73           H  
+HETATM   61  H18 HEM A 142       1.628 -19.243   5.606  1.00 20.73           H  
+HETATM   62  H19 HEM A 142       0.377 -16.720   4.662  1.00 16.68           H  
+HETATM   63  H20 HEM A 142       2.701 -11.709   1.404  1.00 13.01           H  
+HETATM   64  H21 HEM A 142       6.763 -10.487   6.165  1.00 13.35           H  
+HETATM   65  H22 HEM A 142       4.549 -15.521   9.393  1.00 15.83           H  
+HETATM   66  H23 HEM A 142      -0.066 -12.722   0.556  1.00 12.13           H  
+HETATM   67  H24 HEM A 142       1.624 -12.897   0.028  1.00 12.13           H  
+HETATM   68  H25 HEM A 142       0.490 -14.257  -0.154  1.00 12.13           H  
+HETATM   69  H26 HEM A 142       3.845  -8.699   1.670  1.00 14.76           H  
+HETATM   70  H27 HEM A 142       5.459  -9.235   1.146  1.00 14.76           H  
+HETATM   71  H28 HEM A 142       4.020 -10.188   0.712  1.00 14.76           H  
+HETATM   72  H29 HEM A 142       8.628 -11.558   7.893  1.00 11.20           H  
+HETATM   73  H30 HEM A 142       7.473 -10.365   8.534  1.00 11.20           H  
+HETATM   74  H31 HEM A 142       8.096 -11.656   9.589  1.00 11.20           H  
+HETATM   75  H32 HEM A 142       3.347 -16.999  10.064  1.00 14.94           H  
+HETATM   76  H33 HEM A 142       1.701 -17.651   9.887  1.00 14.94           H  
+HETATM   77  H34 HEM A 142       3.086 -18.531   9.196  1.00 14.94           H  
+CONECT    1    6   44   57   28
+CONECT    2    7   45   46   35
+CONECT    3    8   47   48   36
+CONECT    4    9   49   50   37
+CONECT    5   22   38   43
+CONECT    6    1   11   51   52
+CONECT    7    2   53   54   55
+CONECT    8    3   56   58   59
+CONECT    9    4   12   60   61
+CONECT   10   23   39   43
+CONECT   11    6   26   32
+CONECT   12    9   27   33
+CONECT   13   25   41   43
+CONECT   14   22   41   62
+CONECT   15   23   38   63
+CONECT   16   24   39   64
+CONECT   17   25   40   65
+CONECT   18   66   67   68   34
+CONECT   19   69   70   71   29
+CONECT   20   72   73   74   30
+CONECT   21   75   76   77   31
+CONECT   22    5   14   28
+CONECT   23   10   15   29
+CONECT   24   16   30   42
+CONECT   25   13   17   31
+CONECT   26   11
+CONECT   27   12
+CONECT   28   22    1   34
+CONECT   29   23   19   35
+CONECT   30   24   20   36
+CONECT   31   25   21   37
+CONECT   32   11
+CONECT   33   12
+CONECT   34   28   18   38
+CONECT   35   29    2   39
+CONECT   36   30    3   40
+CONECT   37   31    4   41
+CONECT   38    5   15   34
+CONECT   39   10   16   35
+CONECT   40   17   36   42
+CONECT   41   13   14   37
+CONECT   42   24   40   43
+CONECT   43    5   10   13   42
+CONECT   44    1
+CONECT   45    2
+CONECT   46    2
+CONECT   47    3
+CONECT   48    3
+CONECT   49    4
+CONECT   50    4
+CONECT   51    6
+CONECT   52    6
+CONECT   53    7
+CONECT   54    7
+CONECT   55    7
+CONECT   56    8
+CONECT   57    1
+CONECT   58    8
+CONECT   59    8
+CONECT   60    9
+CONECT   61    9
+CONECT   62   14
+CONECT   63   15
+CONECT   64   16
+CONECT   65   17
+CONECT   66   18
+CONECT   67   18
+CONECT   68   18
+CONECT   69   19
+CONECT   70   19
+CONECT   71   19
+CONECT   72   20
+CONECT   73   20
+CONECT   74   20
+CONECT   75   21
+CONECT   76   21
+CONECT   77   21
+END

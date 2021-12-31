@@ -1,0 +1,546 @@
+Remarks HEM_fix_CNS.top created by acpype (v: 2020-11-11T22:59:34CET) on Sat Aug 28 14:21:48 2021
+
+set echo=false end
+
+autogenerate angles=True dihedrals=True end
+
+{ atomType  mass }
+MASS c3_     12.010
+MASS nc_     14.010
+MASS c_      12.010
+MASS cf_     12.010
+MASS cc_     12.010
+MASS o_      16.000
+MASS cd_     12.010
+MASS hc_      1.008
+MASS ha_      1.008
+
+RESIdue HEM
+
+GROUP
+
+{ atomName  atomType  Charge }
+ATOM CAA   TYPE= c3_   CHARGE=  -0.0292 END
+ATOM CAB   TYPE= c3_   CHARGE=  -0.0152 END
+ATOM CAC   TYPE= c3_   CHARGE=  -0.0202 END
+ATOM CAD   TYPE= c3_   CHARGE=  -0.0342 END
+ATOM NA    TYPE= nc_   CHARGE=  -0.0310 END
+ATOM CBA   TYPE= c3_   CHARGE=  -0.1904 END
+ATOM CBB   TYPE= c3_   CHARGE=  -0.0881 END
+ATOM CBC   TYPE= c3_   CHARGE=  -0.0921 END
+ATOM CBD   TYPE= c3_   CHARGE=  -0.1884 END
+ATOM NB    TYPE= nc_   CHARGE=   0.0050 END
+ATOM CGA   TYPE= c_    CHARGE=   0.9046 END
+ATOM CGD   TYPE= c_    CHARGE=   0.9046 END
+ATOM ND    TYPE= nc_   CHARGE=  -0.0670 END
+ATOM CHA   TYPE= cf_   CHARGE=  -0.0896 END
+ATOM CHB   TYPE= cf_   CHARGE=  -0.0366 END
+ATOM CHC   TYPE= cf_   CHARGE=  -0.1136 END
+ATOM CHD   TYPE= cf_   CHARGE=  -0.1736 END
+ATOM CMA   TYPE= c3_   CHARGE=  -0.0649 END
+ATOM CMB   TYPE= c3_   CHARGE=  -0.0389 END
+ATOM CMC   TYPE= c3_   CHARGE=  -0.0319 END
+ATOM CMD   TYPE= c3_   CHARGE=  -0.0649 END
+ATOM C1A   TYPE= cc_   CHARGE=  -0.0630 END
+ATOM C1B   TYPE= cc_   CHARGE=  -0.1020 END
+ATOM C1C   TYPE= cc_   CHARGE=  -0.0480 END
+ATOM C1D   TYPE= cc_   CHARGE=  -0.0050 END
+ATOM O1A   TYPE= o_    CHARGE=  -0.8543 END
+ATOM O1D   TYPE= o_    CHARGE=  -0.8548 END
+ATOM C2A   TYPE= cc_   CHARGE=  -0.0572 END
+ATOM C2B   TYPE= cc_   CHARGE=  -0.0982 END
+ATOM C2C   TYPE= cc_   CHARGE=  -0.1282 END
+ATOM C2D   TYPE= cc_   CHARGE=  -0.1232 END
+ATOM O2A   TYPE= o_    CHARGE=  -0.8543 END
+ATOM O2D   TYPE= o_    CHARGE=  -0.8548 END
+ATOM C3A   TYPE= cd_   CHARGE=  -0.1452 END
+ATOM C3B   TYPE= cd_   CHARGE=  -0.1462 END
+ATOM C3C   TYPE= cd_   CHARGE=  -0.1172 END
+ATOM C3D   TYPE= cd_   CHARGE=  -0.0782 END
+ATOM C4A   TYPE= cd_   CHARGE=   0.0336 END
+ATOM C4B   TYPE= cd_   CHARGE=   0.0426 END
+ATOM C4C   TYPE= cd_   CHARGE=   0.0936 END
+ATOM C4D   TYPE= cd_   CHARGE=   0.0826 END
+ATOM NC    TYPE= nc_   CHARGE=  -0.0330 END
+ATOM H01   TYPE= hc_   CHARGE=   0.0587 END
+ATOM H02   TYPE= hc_   CHARGE=   0.0402 END
+ATOM H03   TYPE= hc_   CHARGE=   0.0402 END
+ATOM H04   TYPE= hc_   CHARGE=   0.0392 END
+ATOM H05   TYPE= hc_   CHARGE=   0.0392 END
+ATOM H06   TYPE= hc_   CHARGE=   0.0592 END
+ATOM H07   TYPE= hc_   CHARGE=   0.0592 END
+ATOM H08   TYPE= hc_   CHARGE=   0.0322 END
+ATOM H09   TYPE= hc_   CHARGE=   0.0322 END
+ATOM H10   TYPE= hc_   CHARGE=   0.0307 END
+ATOM H11   TYPE= hc_   CHARGE=   0.0307 END
+ATOM H12   TYPE= hc_   CHARGE=   0.0307 END
+ATOM H13   TYPE= hc_   CHARGE=   0.0394 END
+ATOM H14   TYPE= hc_   CHARGE=   0.0587 END
+ATOM H15   TYPE= hc_   CHARGE=   0.0394 END
+ATOM H16   TYPE= hc_   CHARGE=   0.0394 END
+ATOM H17   TYPE= hc_   CHARGE=   0.0332 END
+ATOM H18   TYPE= hc_   CHARGE=   0.0332 END
+ATOM H19   TYPE= ha_   CHARGE=   0.1570 END
+ATOM H20   TYPE= ha_   CHARGE=   0.1350 END
+ATOM H21   TYPE= ha_   CHARGE=   0.1220 END
+ATOM H22   TYPE= ha_   CHARGE=   0.1340 END
+ATOM H23   TYPE= hc_   CHARGE=   0.0570 END
+ATOM H24   TYPE= hc_   CHARGE=   0.0570 END
+ATOM H25   TYPE= hc_   CHARGE=   0.0570 END
+ATOM H26   TYPE= hc_   CHARGE=   0.0410 END
+ATOM H27   TYPE= hc_   CHARGE=   0.0410 END
+ATOM H28   TYPE= hc_   CHARGE=   0.0410 END
+ATOM H29   TYPE= hc_   CHARGE=   0.0364 END
+ATOM H30   TYPE= hc_   CHARGE=   0.0364 END
+ATOM H31   TYPE= hc_   CHARGE=   0.0364 END
+ATOM H32   TYPE= hc_   CHARGE=   0.0597 END
+ATOM H33   TYPE= hc_   CHARGE=   0.0597 END
+ATOM H34   TYPE= hc_   CHARGE=   0.0597 END
+
+{ Bonds: atomName1  atomName2 }
+BOND CAA   H01  
+BOND CAA   H14  
+BOND CAB   H02  
+BOND CAB   H03  
+BOND CAC   H04  
+BOND CAC   H05  
+BOND CAD   H06  
+BOND CAD   H07  
+BOND CBA   H08  
+BOND CBA   H09  
+BOND CBB   H10  
+BOND CBB   H11  
+BOND CBB   H12  
+BOND CBC   H13  
+BOND CBC   H15  
+BOND CBC   H16  
+BOND CBD   H17  
+BOND CBD   H18  
+BOND CHA   H19  
+BOND CHB   H20  
+BOND CHC   H21  
+BOND CHD   H22  
+BOND CMA   H23  
+BOND CMA   H24  
+BOND CMA   H25  
+BOND CMB   H26  
+BOND CMB   H27  
+BOND CMB   H28  
+BOND CMC   H29  
+BOND CMC   H30  
+BOND CMC   H31  
+BOND CMD   H32  
+BOND CMD   H33  
+BOND CMD   H34  
+BOND CAA   CBA  
+BOND CAA   C2A  
+BOND CAB   CBB  
+BOND CAB   C3B  
+BOND CAC   CBC  
+BOND CAC   C3C  
+BOND CAD   CBD  
+BOND CAD   C3D  
+BOND NA    C1A  
+BOND NA    C4A  
+BOND CBA   CGA  
+BOND CBD   CGD  
+BOND NB    C1B  
+BOND NB    C4B  
+BOND CGA   O1A  
+BOND CGA   O2A  
+BOND CGD   O1D  
+BOND CGD   O2D  
+BOND ND    C1D  
+BOND ND    C4D  
+BOND CHA   C1A  
+BOND CHA   C4D  
+BOND CHB   C1B  
+BOND CHB   C4A  
+BOND CHC   C1C  
+BOND CHC   C4B  
+BOND CHD   C1D  
+BOND CHD   C4C  
+BOND CMA   C3A  
+BOND CMB   C2B  
+BOND CMC   C2C  
+BOND CMD   C2D  
+BOND C1A   C2A  
+BOND C1B   C2B  
+BOND C1C   C2C  
+BOND C1C   NC   
+BOND C1D   C2D  
+BOND C2A   C3A  
+BOND C2B   C3B  
+BOND C2C   C3C  
+BOND C2D   C3D  
+BOND C3A   C4A  
+BOND C3B   C4B  
+BOND C3C   C4C  
+BOND C3D   C4D  
+BOND C4C   NC   
+
+{ Angles: atomName1 atomName2 atomName3}
+ANGLe CAA   CBA   H08  
+ANGLe CAA   CBA   H09  
+ANGLe CAB   CBB   H10  
+ANGLe CAB   CBB   H11  
+ANGLe CAB   CBB   H12  
+ANGLe CAC   CBC   H13  
+ANGLe CAC   CBC   H15  
+ANGLe CAC   CBC   H16  
+ANGLe CAD   CBD   H17  
+ANGLe CAD   CBD   H18  
+ANGLe CBA   CAA   H01  
+ANGLe CBA   CAA   H14  
+ANGLe CBB   CAB   H02  
+ANGLe CBB   CAB   H03  
+ANGLe CBC   CAC   H04  
+ANGLe CBC   CAC   H05  
+ANGLe CBD   CAD   H06  
+ANGLe CBD   CAD   H07  
+ANGLe CGA   CBA   H08  
+ANGLe CGA   CBA   H09  
+ANGLe CGD   CBD   H17  
+ANGLe CGD   CBD   H18  
+ANGLe C1A   CHA   H19  
+ANGLe C1B   CHB   H20  
+ANGLe C1C   CHC   H21  
+ANGLe C1D   CHD   H22  
+ANGLe C2A   CAA   H01  
+ANGLe C2A   CAA   H14  
+ANGLe C2B   CMB   H26  
+ANGLe C2B   CMB   H27  
+ANGLe C2B   CMB   H28  
+ANGLe C2C   CMC   H29  
+ANGLe C2C   CMC   H30  
+ANGLe C2C   CMC   H31  
+ANGLe C2D   CMD   H32  
+ANGLe C2D   CMD   H33  
+ANGLe C2D   CMD   H34  
+ANGLe C3A   CMA   H23  
+ANGLe C3A   CMA   H24  
+ANGLe C3A   CMA   H25  
+ANGLe C3B   CAB   H02  
+ANGLe C3B   CAB   H03  
+ANGLe C3C   CAC   H04  
+ANGLe C3C   CAC   H05  
+ANGLe C3D   CAD   H06  
+ANGLe C3D   CAD   H07  
+ANGLe C4A   CHB   H20  
+ANGLe C4B   CHC   H21  
+ANGLe C4C   CHD   H22  
+ANGLe C4D   CHA   H19  
+ANGLe H01   CAA   H14  
+ANGLe H02   CAB   H03  
+ANGLe H04   CAC   H05  
+ANGLe H06   CAD   H07  
+ANGLe H08   CBA   H09  
+ANGLe H10   CBB   H11  
+ANGLe H10   CBB   H12  
+ANGLe H11   CBB   H12  
+ANGLe H13   CBC   H15  
+ANGLe H13   CBC   H16  
+ANGLe H15   CBC   H16  
+ANGLe H17   CBD   H18  
+ANGLe H23   CMA   H24  
+ANGLe H23   CMA   H25  
+ANGLe H24   CMA   H25  
+ANGLe H26   CMB   H27  
+ANGLe H26   CMB   H28  
+ANGLe H27   CMB   H28  
+ANGLe H29   CMC   H30  
+ANGLe H29   CMC   H31  
+ANGLe H30   CMC   H31  
+ANGLe H32   CMD   H33  
+ANGLe H32   CMD   H34  
+ANGLe H33   CMD   H34  
+ANGLe CAA   CBA   CGA  
+ANGLe CAA   C2A   C1A  
+ANGLe CAA   C2A   C3A  
+ANGLe CAB   C3B   C2B  
+ANGLe CAB   C3B   C4B  
+ANGLe CAC   C3C   C2C  
+ANGLe CAC   C3C   C4C  
+ANGLe CAD   CBD   CGD  
+ANGLe CAD   C3D   C2D  
+ANGLe CAD   C3D   C4D  
+ANGLe NA    C1A   CHA  
+ANGLe NA    C1A   C2A  
+ANGLe NA    C4A   CHB  
+ANGLe NA    C4A   C3A  
+ANGLe CBA   CAA   C2A  
+ANGLe CBA   CGA   O1A  
+ANGLe CBA   CGA   O2A  
+ANGLe CBB   CAB   C3B  
+ANGLe CBC   CAC   C3C  
+ANGLe CBD   CAD   C3D  
+ANGLe CBD   CGD   O1D  
+ANGLe CBD   CGD   O2D  
+ANGLe NB    C1B   CHB  
+ANGLe NB    C1B   C2B  
+ANGLe NB    C4B   CHC  
+ANGLe NB    C4B   C3B  
+ANGLe ND    C1D   CHD  
+ANGLe ND    C1D   C2D  
+ANGLe ND    C4D   CHA  
+ANGLe ND    C4D   C3D  
+ANGLe CHA   C1A   C2A  
+ANGLe CHA   C4D   C3D  
+ANGLe CHB   C1B   C2B  
+ANGLe CHB   C4A   C3A  
+ANGLe CHC   C1C   C2C  
+ANGLe CHC   C1C   NC   
+ANGLe CHC   C4B   C3B  
+ANGLe CHD   C1D   C2D  
+ANGLe CHD   C4C   C3C  
+ANGLe CHD   C4C   NC   
+ANGLe CMA   C3A   C2A  
+ANGLe CMA   C3A   C4A  
+ANGLe CMB   C2B   C1B  
+ANGLe CMB   C2B   C3B  
+ANGLe CMC   C2C   C1C  
+ANGLe CMC   C2C   C3C  
+ANGLe CMD   C2D   C1D  
+ANGLe CMD   C2D   C3D  
+ANGLe C1A   NA    C4A  
+ANGLe C1A   CHA   C4D  
+ANGLe C1A   C2A   C3A  
+ANGLe C1B   NB    C4B  
+ANGLe C1B   CHB   C4A  
+ANGLe C1B   C2B   C3B  
+ANGLe C1C   CHC   C4B  
+ANGLe C1C   C2C   C3C  
+ANGLe C1C   NC    C4C  
+ANGLe C1D   ND    C4D  
+ANGLe C1D   CHD   C4C  
+ANGLe C1D   C2D   C3D  
+ANGLe O1A   CGA   O2A  
+ANGLe O1D   CGD   O2D  
+ANGLe C2A   C3A   C4A  
+ANGLe C2B   C3B   C4B  
+ANGLe C2C   C1C   NC   
+ANGLe C2C   C3C   C4C  
+ANGLe C2D   C3D   C4D  
+ANGLe C3C   C4C   NC   
+
+{ Proper Dihedrals: name1 name2 name3 name4 }
+DIHEdral NA    C1A   CHA   H19  
+DIHEdral NA    C4A   CHB   H20  
+DIHEdral NB    C1B   CHB   H20  
+DIHEdral NB    C4B   CHC   H21  
+DIHEdral H01   CAA   CBA   CGA  
+DIHEdral H14   CAA   CBA   CGA  
+DIHEdral CGD   CBD   CAD   H06  
+DIHEdral CGD   CBD   CAD   H07  
+DIHEdral ND    C1D   CHD   H22  
+DIHEdral ND    C4D   CHA   H19  
+DIHEdral H01   CAA   C2A   C1A  
+DIHEdral H14   CAA   C2A   C1A  
+DIHEdral C1B   C2B   CMB   H26  
+DIHEdral C1B   C2B   CMB   H27  
+DIHEdral C1B   C2B   CMB   H28  
+DIHEdral C1C   C2C   CMC   H29  
+DIHEdral C1C   C2C   CMC   H30  
+DIHEdral C1C   C2C   CMC   H31  
+DIHEdral C1D   C2D   CMD   H32  
+DIHEdral C1D   C2D   CMD   H33  
+DIHEdral C1D   C2D   CMD   H34  
+DIHEdral O1A   CGA   CBA   H08  
+DIHEdral O1A   CGA   CBA   H09  
+DIHEdral O1D   CGD   CBD   H17  
+DIHEdral O1D   CGD   CBD   H18  
+DIHEdral C2A   CAA   CBA   H08  
+DIHEdral C2A   CAA   CBA   H09  
+DIHEdral C2A   C1A   CHA   H19  
+DIHEdral C2A   C3A   CMA   H23  
+DIHEdral C2A   C3A   CMA   H24  
+DIHEdral C2A   C3A   CMA   H25  
+DIHEdral C2B   C1B   CHB   H20  
+DIHEdral C2B   C3B   CAB   H02  
+DIHEdral C2B   C3B   CAB   H03  
+DIHEdral C2C   C1C   CHC   H21  
+DIHEdral C2C   C3C   CAC   H04  
+DIHEdral C2C   C3C   CAC   H05  
+DIHEdral C2D   C1D   CHD   H22  
+DIHEdral C2D   C3D   CAD   H06  
+DIHEdral C2D   C3D   CAD   H07  
+DIHEdral O2A   CGA   CBA   H08  
+DIHEdral O2A   CGA   CBA   H09  
+DIHEdral O2D   CGD   CBD   H17  
+DIHEdral O2D   CGD   CBD   H18  
+DIHEdral H01   CAA   C2A   C3A  
+DIHEdral H14   CAA   C2A   C3A  
+DIHEdral C3A   C4A   CHB   H20  
+DIHEdral C3B   CAB   CBB   H10  
+DIHEdral C3B   CAB   CBB   H11  
+DIHEdral C3B   CAB   CBB   H12  
+DIHEdral C3B   C2B   CMB   H26  
+DIHEdral C3B   C2B   CMB   H27  
+DIHEdral C3B   C2B   CMB   H28  
+DIHEdral C3B   C4B   CHC   H21  
+DIHEdral C3C   CAC   CBC   H13  
+DIHEdral C3C   CAC   CBC   H15  
+DIHEdral C3C   CAC   CBC   H16  
+DIHEdral C3C   C2C   CMC   H29  
+DIHEdral C3C   C2C   CMC   H30  
+DIHEdral C3C   C2C   CMC   H31  
+DIHEdral C3C   C4C   CHD   H22  
+DIHEdral C3D   CAD   CBD   H17  
+DIHEdral C3D   CAD   CBD   H18  
+DIHEdral C3D   C2D   CMD   H32  
+DIHEdral C3D   C2D   CMD   H33  
+DIHEdral C3D   C2D   CMD   H34  
+DIHEdral C3D   C4D   CHA   H19  
+DIHEdral C4A   C3A   CMA   H23  
+DIHEdral C4A   C3A   CMA   H24  
+DIHEdral C4A   C3A   CMA   H25  
+DIHEdral C4B   C3B   CAB   H02  
+DIHEdral C4B   C3B   CAB   H03  
+DIHEdral C4C   C3C   CAC   H04  
+DIHEdral C4C   C3C   CAC   H05  
+DIHEdral C4D   C3D   CAD   H06  
+DIHEdral C4D   C3D   CAD   H07  
+DIHEdral NC    C1C   CHC   H21  
+DIHEdral NC    C4C   CHD   H22  
+DIHEdral H01   CAA   CBA   H08  
+DIHEdral H01   CAA   CBA   H09  
+DIHEdral H02   CAB   CBB   H10  
+DIHEdral H02   CAB   CBB   H11  
+DIHEdral H02   CAB   CBB   H12  
+DIHEdral H03   CAB   CBB   H10  
+DIHEdral H03   CAB   CBB   H11  
+DIHEdral H03   CAB   CBB   H12  
+DIHEdral H04   CAC   CBC   H13  
+DIHEdral H04   CAC   CBC   H15  
+DIHEdral H04   CAC   CBC   H16  
+DIHEdral H05   CAC   CBC   H13  
+DIHEdral H05   CAC   CBC   H15  
+DIHEdral H05   CAC   CBC   H16  
+DIHEdral H06   CAD   CBD   H17  
+DIHEdral H06   CAD   CBD   H18  
+DIHEdral H07   CAD   CBD   H17  
+DIHEdral H07   CAD   CBD   H18  
+DIHEdral H14   CAA   CBA   H08  
+DIHEdral H14   CAA   CBA   H09  
+DIHEdral CAA   CBA   CGA   O1A  
+DIHEdral CAA   CBA   CGA   O2A  
+DIHEdral CAA   C2A   C1A   NA   
+DIHEdral CAA   C2A   C1A   CHA  
+DIHEdral CAA   C2A   C3A   CMA  
+DIHEdral CAA   C2A   C3A   C4A  
+DIHEdral CAB   C3B   C2B   CMB  
+DIHEdral CAB   C3B   C2B   C1B  
+DIHEdral CAB   C3B   C4B   NB   
+DIHEdral CAB   C3B   C4B   CHC  
+DIHEdral CAC   C3C   C2C   CMC  
+DIHEdral CAC   C3C   C2C   C1C  
+DIHEdral CAC   C3C   C4C   CHD  
+DIHEdral CAC   C3C   C4C   NC   
+DIHEdral CAD   CBD   CGD   O1D  
+DIHEdral CAD   CBD   CGD   O2D  
+DIHEdral CAD   C3D   C2D   CMD  
+DIHEdral CAD   C3D   C2D   C1D  
+DIHEdral CAD   C3D   C4D   ND   
+DIHEdral CAD   C3D   C4D   CHA  
+DIHEdral NA    C1A   CHA   C4D  
+DIHEdral NA    C1A   C2A   C3A  
+DIHEdral NA    C4A   CHB   C1B  
+DIHEdral NA    C4A   C3A   CMA  
+DIHEdral NA    C4A   C3A   C2A  
+DIHEdral CBA   CAA   C2A   C1A  
+DIHEdral CBA   CAA   C2A   C3A  
+DIHEdral CBB   CAB   C3B   C2B  
+DIHEdral CBB   CAB   C3B   C4B  
+DIHEdral CBC   CAC   C3C   C2C  
+DIHEdral CBC   CAC   C3C   C4C  
+DIHEdral CBD   CAD   C3D   C2D  
+DIHEdral CBD   CAD   C3D   C4D  
+DIHEdral NB    C1B   CHB   C4A  
+DIHEdral NB    C1B   C2B   CMB  
+DIHEdral NB    C1B   C2B   C3B  
+DIHEdral NB    C4B   CHC   C1C  
+DIHEdral NB    C4B   C3B   C2B  
+DIHEdral C2A   CAA   CBA   CGA  
+DIHEdral CGD   CBD   CAD   C3D  
+DIHEdral ND    C1D   CHD   C4C  
+DIHEdral ND    C1D   C2D   CMD  
+DIHEdral ND    C1D   C2D   C3D  
+DIHEdral ND    C4D   CHA   C1A  
+DIHEdral ND    C4D   C3D   C2D  
+DIHEdral CHA   C1A   NA    C4A  
+DIHEdral CHA   C1A   C2A   C3A  
+DIHEdral CHA   C4D   ND    C1D  
+DIHEdral CHA   C4D   C3D   C2D  
+DIHEdral CHB   C1B   NB    C4B  
+DIHEdral CHB   C1B   C2B   CMB  
+DIHEdral CHB   C1B   C2B   C3B  
+DIHEdral CHB   C4A   NA    C1A  
+DIHEdral CHB   C4A   C3A   CMA  
+DIHEdral CHB   C4A   C3A   C2A  
+DIHEdral CHC   C1C   C2C   CMC  
+DIHEdral CHC   C1C   C2C   C3C  
+DIHEdral CHC   C1C   NC    C4C  
+DIHEdral CHC   C4B   NB    C1B  
+DIHEdral CHC   C4B   C3B   C2B  
+DIHEdral CHD   C1D   ND    C4D  
+DIHEdral CHD   C1D   C2D   CMD  
+DIHEdral CHD   C1D   C2D   C3D  
+DIHEdral CHD   C4C   C3C   C2C  
+DIHEdral CHD   C4C   NC    C1C  
+DIHEdral CMA   C3A   C2A   C1A  
+DIHEdral CMB   C2B   C3B   C4B  
+DIHEdral CMC   C2C   C1C   NC   
+DIHEdral CMC   C2C   C3C   C4C  
+DIHEdral CMD   C2D   C3D   C4D  
+DIHEdral C1A   NA    C4A   C3A  
+DIHEdral C1A   CHA   C4D   C3D  
+DIHEdral C1A   C2A   C3A   C4A  
+DIHEdral C1B   NB    C4B   C3B  
+DIHEdral C1B   CHB   C4A   C3A  
+DIHEdral C1B   C2B   C3B   C4B  
+DIHEdral C1C   CHC   C4B   C3B  
+DIHEdral C1C   C2C   C3C   C4C  
+DIHEdral C1C   NC    C4C   C3C  
+DIHEdral C1D   ND    C4D   C3D  
+DIHEdral C1D   CHD   C4C   C3C  
+DIHEdral C1D   CHD   C4C   NC   
+DIHEdral C1D   C2D   C3D   C4D  
+DIHEdral C2A   C1A   NA    C4A  
+DIHEdral C2A   C1A   CHA   C4D  
+DIHEdral C2B   C1B   NB    C4B  
+DIHEdral C2B   C1B   CHB   C4A  
+DIHEdral C2C   C1C   CHC   C4B  
+DIHEdral C2C   C1C   NC    C4C  
+DIHEdral C2C   C3C   C4C   NC   
+DIHEdral C2D   C1D   ND    C4D  
+DIHEdral C2D   C1D   CHD   C4C  
+DIHEdral C3C   C2C   C1C   NC   
+DIHEdral C4B   CHC   C1C   NC   
+
+{ Improper Dihedrals: aName1 aName2 aName3 aName4 }
+IMPRoper C1A   C4D   CHA   H19  
+IMPRoper C1B   C4A   CHB   H20  
+IMPRoper C1C   C4B   CHC   H21  
+IMPRoper C1D   C4C   CHD   H22  
+IMPRoper CBA   O1A   CGA   O2A  
+IMPRoper CBD   O1D   CGD   O2D  
+IMPRoper C2A   CHA   C1A   NA   
+IMPRoper C2B   CHB   C1B   NB   
+IMPRoper C2C   CHC   C1C   NC   
+IMPRoper C2D   CHD   C1D   ND   
+IMPRoper CAA   C1A   C2A   C3A  
+IMPRoper CMB   C1B   C2B   C3B  
+IMPRoper CMC   C1C   C2C   C3C  
+IMPRoper CMD   C1D   C2D   C3D  
+IMPRoper CMA   C2A   C3A   C4A  
+IMPRoper CAB   C2B   C3B   C4B  
+IMPRoper CAC   C2C   C3C   C4C  
+IMPRoper CAD   C2D   C3D   C4D  
+IMPRoper C3A   CHB   C4A   NA   
+IMPRoper C3B   CHC   C4B   NB   
+IMPRoper C3C   CHD   C4C   NC   
+IMPRoper C3D   CHA   C4D   ND   
+
+END {RESIdue HEM}
+
+set echo=true end
