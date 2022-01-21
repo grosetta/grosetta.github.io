@@ -1,6 +1,77 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>Windows Subsystem for Linux(wsl)及带有gui的wsl</title>
+    <url>/2022/01/21/win11_wsl/</url>
+    <content><![CDATA[<p>description: win11起开始支持带有图形化界面的wsl了，配置起来方便多了！</p>
+<span id="more"></span>
+<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
+<h2 id="升级到win11"><a href="#升级到win11" class="headerlink" title="升级到win11"></a>升级到win11</h2><p>想要接收win11更新推送前提要保证win10已经更新到21H2及以上版本。</p>
+<p>此外win11对硬件有一定要求，安装微软提供的<a href="WindowsPCHealthCheckSetup.msi"><font color="#DC143C">检测工具</font></a>看你的设备够不够资格(双击默认安装)</p>
+<h2 id="命令行安装wsl"><a href="#命令行安装wsl" class="headerlink" title="命令行安装wsl"></a>命令行安装wsl</h2><p>我的微软商店连不上，好在win11可以直接在cmd中安装</p>
+<figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line">&gt; wsl --list --online     #查看有哪些可供安装的wsl发行版</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/01/21/win11_wsl/conan.jpg#pic_center" alt="可供安装的wsl发行版"></p>
+<figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line">&gt; wsl --install -d Ubuntu-<span class="number">18</span>.<span class="number">04</span>     #我选择安装ubuntu</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>如果安装完成后报下面的错误，则安装<a href="wsl_update_x64.msi"><font color="#DC143C">内核升级工具</font></a> (双击默认安装)</li>
+<li>Installing, this may take a few minutes… WslRegisterDistribution</li>
+<li>failed with error: 0x800701bc Error: 0x800701bc WSL 2 ???</li>
+<li><a href="https://aka.ms/wsl2kernel">https://aka.ms/wsl2kernel</a></li>
+<li></li>
+<li>Press any key to continue…</li>
+</ul>
+<p>关闭已打开的wsl，重新开启报错消失，设置好用户名和密码。</p>
+<h2 id="更新安装wsl-gui"><a href="#更新安装wsl-gui" class="headerlink" title="更新安装wsl-gui"></a>更新安装wsl-gui</h2><p>打开cmd</p>
+<figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line">&gt; wsl --update    </span><br></pre></td></tr></table></figure>
+<p>更新过后重启一次</p>
+<figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line">wsl --update   #完全关闭wsl</span><br></pre></td></tr></table></figure>
+<p>再开启wsl即可打开图形应用（试试装个gedit或者pymol看看）</p>
+<h2 id="更换安装源"><a href="#更换安装源" class="headerlink" title="更换安装源"></a>更换安装源</h2><p>在wsl环境中输入</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ sudo gedit /etc/apt/sources.list</span><br></pre></td></tr></table></figure>
+<p>添加以下内容:</p>
+<ul>
+<li>deb <a href="http://mirrors.aliyun.com/ubuntu/">http://mirrors.aliyun.com/ubuntu/</a> bionic main restricted universe multiverse</li>
+<li>deb-src <a href="http://mirrors.aliyun.com/ubuntu/">http://mirrors.aliyun.com/ubuntu/</a> bionic main restricted universe multiverse</li>
+<li></li>
+<li>deb <a href="http://mirrors.aliyun.com/ubuntu/">http://mirrors.aliyun.com/ubuntu/</a> bionic-security main restricted universe multiverse</li>
+<li>deb-src <a href="http://mirrors.aliyun.com/ubuntu/">http://mirrors.aliyun.com/ubuntu/</a> bionic-security main restricted universe multiverse</li>
+<li></li>
+<li>deb <a href="http://mirrors.aliyun.com/ubuntu/">http://mirrors.aliyun.com/ubuntu/</a> bionic-updates main restricted universe multiverse</li>
+<li>deb-src <a href="http://mirrors.aliyun.com/ubuntu/">http://mirrors.aliyun.com/ubuntu/</a> bionic-updates main restricted universe multiverse</li>
+<li></li>
+<li>deb <a href="http://mirrors.aliyun.com/ubuntu/">http://mirrors.aliyun.com/ubuntu/</a> bionic-proposed main restricted universe multiverse</li>
+<li>deb-src <a href="http://mirrors.aliyun.com/ubuntu/">http://mirrors.aliyun.com/ubuntu/</a> bionic-proposed main restricted universe multiverse</li>
+<li></li>
+<li>deb <a href="http://mirrors.aliyun.com/ubuntu/">http://mirrors.aliyun.com/ubuntu/</a> bionic-backports main restricted universe multiverse</li>
+<li>deb-src <a href="http://mirrors.aliyun.com/ubuntu/">http://mirrors.aliyun.com/ubuntu/</a> bionic-backports main restricted universe multiverse</li>
+<li></li>
+<li><h1 id="默认注释了源码镜像以提高-apt-update-速度，如有需要可自行取消注释"><a href="#默认注释了源码镜像以提高-apt-update-速度，如有需要可自行取消注释" class="headerlink" title="默认注释了源码镜像以提高 apt update 速度，如有需要可自行取消注释"></a>默认注释了源码镜像以提高 apt update 速度，如有需要可自行取消注释</h1></li>
+<li>deb <a href="https://mirrors.tuna.tsinghua.edu.cn/ubuntu/">https://mirrors.tuna.tsinghua.edu.cn/ubuntu/</a> bionic main restricted universe multiverse</li>
+<li><h1 id="deb-src-https-mirrors-tuna-tsinghua-edu-cn-ubuntu-bionic-main-restricted-universe-multiverse"><a href="#deb-src-https-mirrors-tuna-tsinghua-edu-cn-ubuntu-bionic-main-restricted-universe-multiverse" class="headerlink" title="deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ bionic main restricted universe multiverse"></a>deb-src <a href="https://mirrors.tuna.tsinghua.edu.cn/ubuntu/">https://mirrors.tuna.tsinghua.edu.cn/ubuntu/</a> bionic main restricted universe multiverse</h1></li>
+<li>deb <a href="https://mirrors.tuna.tsinghua.edu.cn/ubuntu/">https://mirrors.tuna.tsinghua.edu.cn/ubuntu/</a> bionic-updates main restricted universe multiverse</li>
+<li><h1 id="deb-src-https-mirrors-tuna-tsinghua-edu-cn-ubuntu-bionic-updates-main-restricted-universe-multiverse"><a href="#deb-src-https-mirrors-tuna-tsinghua-edu-cn-ubuntu-bionic-updates-main-restricted-universe-multiverse" class="headerlink" title="deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ bionic-updates main restricted universe multiverse"></a>deb-src <a href="https://mirrors.tuna.tsinghua.edu.cn/ubuntu/">https://mirrors.tuna.tsinghua.edu.cn/ubuntu/</a> bionic-updates main restricted universe multiverse</h1></li>
+<li>deb <a href="https://mirrors.tuna.tsinghua.edu.cn/ubuntu/">https://mirrors.tuna.tsinghua.edu.cn/ubuntu/</a> bionic-backports main restricted universe multiverse</li>
+<li><h1 id="deb-src-https-mirrors-tuna-tsinghua-edu-cn-ubuntu-bionic-backports-main-restricted-universe-multiverse"><a href="#deb-src-https-mirrors-tuna-tsinghua-edu-cn-ubuntu-bionic-backports-main-restricted-universe-multiverse" class="headerlink" title="deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ bionic-backports main restricted universe multiverse"></a>deb-src <a href="https://mirrors.tuna.tsinghua.edu.cn/ubuntu/">https://mirrors.tuna.tsinghua.edu.cn/ubuntu/</a> bionic-backports main restricted universe multiverse</h1></li>
+<li>deb <a href="https://mirrors.tuna.tsinghua.edu.cn/ubuntu/">https://mirrors.tuna.tsinghua.edu.cn/ubuntu/</a> bionic-security main restricted universe multiverse</li>
+<li><h1 id="deb-src-https-mirrors-tuna-tsinghua-edu-cn-ubuntu-bionic-security-main-restricted-universe-multiverse"><a href="#deb-src-https-mirrors-tuna-tsinghua-edu-cn-ubuntu-bionic-security-main-restricted-universe-multiverse" class="headerlink" title="deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ bionic-security main restricted universe multiverse"></a>deb-src <a href="https://mirrors.tuna.tsinghua.edu.cn/ubuntu/">https://mirrors.tuna.tsinghua.edu.cn/ubuntu/</a> bionic-security main restricted universe multiverse</h1></li>
+<li></li>
+<li><h1 id="预发布软件源，不建议启用"><a href="#预发布软件源，不建议启用" class="headerlink" title="预发布软件源，不建议启用"></a>预发布软件源，不建议启用</h1></li>
+<li><h1 id="deb-https-mirrors-tuna-tsinghua-edu-cn-ubuntu-bionic-proposed-main-restricted-universe-multiverse"><a href="#deb-https-mirrors-tuna-tsinghua-edu-cn-ubuntu-bionic-proposed-main-restricted-universe-multiverse" class="headerlink" title="deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ bionic-proposed main restricted universe multiverse"></a>deb <a href="https://mirrors.tuna.tsinghua.edu.cn/ubuntu/">https://mirrors.tuna.tsinghua.edu.cn/ubuntu/</a> bionic-proposed main restricted universe multiverse</h1></li>
+<li><h1 id="deb-src-https-mirrors-tuna-tsinghua-edu-cn-ubuntu-bionic-proposed-main-restricted-universe-multiverse"><a href="#deb-src-https-mirrors-tuna-tsinghua-edu-cn-ubuntu-bionic-proposed-main-restricted-universe-multiverse" class="headerlink" title="deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ bionic-proposed main restricted universe multiverse"></a>deb-src <a href="https://mirrors.tuna.tsinghua.edu.cn/ubuntu/">https://mirrors.tuna.tsinghua.edu.cn/ubuntu/</a> bionic-proposed main restricted universe multiverse</h1></li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ sudo apt-get update    <span class="comment">#更新一下源</span></span><br></pre></td></tr></table></figure>
+
+]]></content>
+      <categories>
+        <category>计算机相关</category>
+      </categories>
+      <tags>
+        <tag>wsl</tag>
+        <tag>Ubuntu</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Gromacs处理血红素</title>
     <url>/2021/12/31/gromacs%E5%A4%84%E7%90%86%E8%A1%80%E7%BA%A2%E7%B4%A0/</url>
     <content><![CDATA[<p>适用于对配位化合物的处理</p>
@@ -201,7 +272,10 @@
 </ul>
 <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ awk <span class="string">&#x27;&#123;$Num=&quot;&quot;; print $0&#125;&#x27;</span> filename</span><br></pre></td></tr></table></figure>
 
-<h2 id="sed相关命令"><a href="#sed相关命令" class="headerlink" title="sed相关命令"></a>sed相关命令</h2><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
+<h2 id="sed相关命令"><a href="#sed相关命令" class="headerlink" title="sed相关命令"></a>sed相关命令</h2><ul>
+<li><font color="#0000CD">删除含某些关键字的行</font>  </li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ sed -i <span class="string">&#x27;/关键字符/d&#x27;</span> filename </span><br></pre></td></tr></table></figure>
 
 ]]></content>
       <categories>
