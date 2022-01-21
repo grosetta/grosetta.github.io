@@ -397,4 +397,50 @@ height: 75%; left: 90px; top: 0;"> </iframe></div>
         <tag>Ubuntu</tag>
       </tags>
   </entry>
+  <entry>
+    <title>右键管理(右键获取当前路径下wsl对应路径)</title>
+    <url>/2022/01/21/%E5%8F%B3%E9%94%AE%E7%AE%A1%E7%90%86/</url>
+    <content><![CDATA[<p>以获取当前路径在wsl中对应路径为例</p>
+<span id="more"></span>
+
+<h2 id="制作路径转换脚本"><a href="#制作路径转换脚本" class="headerlink" title="制作路径转换脚本"></a>制作路径转换脚本</h2><p>创建一个新的名为path_converter.bat文件，用文本编辑器打开，写入如下内容:</p>
+<blockquote>
+<p>@echo off<br>set windows_path=%1</p>
+<p>set wsl_path=%windows_path:=/%<br>set wsl_path=%wsl_path:c:/=/mnt/c/%<br>set wsl_path=%wsl_path:d:/=/mnt/d/%<br>set wsl_path=%wsl_path:e:/=/mnt/e/%<br>set wsl_path=%wsl_path:f:/=/mnt/f/%<br>::set wsl_path=%wsl_path:”=%<br>::echo %wsl_path%<br>:: echo %wsl_path% | clip<br>rem remove spaces and line breaks<br>echo | set /p=”%wsl_path%” | clip</p>
+</blockquote>
+<h2 id="安装右键管理软件"><a href="#安装右键管理软件" class="headerlink" title="安装右键管理软件"></a>安装右键管理软件</h2><p><a href="RightMenuMgr.zip"><font color="#DC143C">下载地址</font></a></p>
+<p><img src="/2022/01/21/%E5%8F%B3%E9%94%AE%E7%AE%A1%E7%90%86/figure1.png#pic_center"></p>
+<p>右击增添拓展项</p>
+<blockquote>
+<p>菜单名称:复制WSL路径到剪切板<br>执行命令:”D:\path_converter\path_converter.bat” “%1”<br><img src="/2022/01/21/%E5%8F%B3%E9%94%AE%E7%AE%A1%E7%90%86/figure2.png#pic_center"></p>
+</blockquote>
+<p>同样的操作在所有文件中重复一次<br><img src="/2022/01/21/%E5%8F%B3%E9%94%AE%E7%AE%A1%E7%90%86/figure3.png#pic_center"></p>
+<h2 id="效果展示"><a href="#效果展示" class="headerlink" title="效果展示"></a>效果展示</h2><p><img src="/2022/01/21/%E5%8F%B3%E9%94%AE%E7%AE%A1%E7%90%86/figure4.png#pic_center"></p>
+]]></content>
+      <categories>
+        <category>计算机相关</category>
+      </categories>
+      <tags>
+        <tag>右键管理</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>文件夹盘符映射</title>
+    <url>/2022/01/21/%E6%96%87%E4%BB%B6%E5%A4%B9%E7%9B%98%E7%AC%A6%E6%98%A0%E5%B0%84/</url>
+    <content><![CDATA[<p>对于一些路径较长且常用的文件夹可以将其映射到一个新的盘符，这样打开资源管理器就能直接看到</p>
+<span id="more"></span>
+
+<h2 id="复制要映射的路径"><a href="#复制要映射的路径" class="headerlink" title="复制要映射的路径"></a>复制要映射的路径</h2><p>比如我想要映射wsl所在路径，则拷贝: C:\Users\asus\AppData\Local\Packages\CanonicalGroupLimited.Ubuntu18.04onWindows_79rhkp1fndgsc\LocalState\rootfs</p>
+<h2 id="映射盘符"><a href="#映射盘符" class="headerlink" title="映射盘符"></a>映射盘符</h2><p><img src="/2022/01/21/%E6%96%87%E4%BB%B6%E5%A4%B9%E7%9B%98%E7%AC%A6%E6%98%A0%E5%B0%84/figure1.png#pic_center"></p>
+<p>红框内输入要映射的文件夹路径<br>对于wsl也可以简化为\wsl$\Ubuntu-18.04</p>
+<p><img src="/2022/01/21/%E6%96%87%E4%BB%B6%E5%A4%B9%E7%9B%98%E7%AC%A6%E6%98%A0%E5%B0%84/figure2.png#pic_center"></p>
+<h2 id="效果展示"><a href="#效果展示" class="headerlink" title="效果展示"></a>效果展示</h2><p><img src="/2022/01/21/%E6%96%87%E4%BB%B6%E5%A4%B9%E7%9B%98%E7%AC%A6%E6%98%A0%E5%B0%84/figure3.png#pic_center"></p>
+]]></content>
+      <categories>
+        <category>计算机相关</category>
+      </categories>
+      <tags>
+        <tag>盘符映射</tag>
+      </tags>
+  </entry>
 </search>
