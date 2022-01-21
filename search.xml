@@ -305,12 +305,12 @@ height: 75%; left: 90px; top: 0;"> </iframe></div>
 <ul>
 <li><font color="#0000CD">连接两个原子</font>  </li>
 </ul>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&gt;&gt; select object1, id 2518     #选择原子序号为2518的原子，并定义为object1</span><br><span class="line">&gt;&gt; select object2, id 1487     #选择原子序号为1487的原子，并定义为object2</span><br><span class="line">&gt;&gt; bond object1, object2       #连接两个object</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&gt;&gt; select object1, id 2518     #选择原子序号为2518的原子，并定义为object1</span><br><span class="line">&gt;&gt; select object2, id 1487     #选择原子序号为1487的原子，并定义为object2</span><br><span class="line">&gt;&gt; bond object1, object2       #连接两个object</span><br><span class="line">&gt;&gt; bond index 2518 index 1487  #直接通过索引两个原子的序号连接起来</span><br></pre></td></tr></table></figure>
 
 <ul>
-<li><font color="#0000CD">center_of_mass脚本使用</font>  </li>
+<li><a href="center_of_mass.py"><font color="#0000CD">center_of_mass脚本使用</font></a>  </li>
 </ul>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&gt;&gt; import center_of_mass</span><br><span class="line">&gt;&gt; com sele,state=r1</span><br><span class="line">&gt;&gt; set sphere_scale,0.15</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&gt;&gt; import center_of_mass       #前提是将center_of_mass.py放到安装pymol所在python环境下的Lib文件夹内</span><br><span class="line">&gt;&gt; com sele,state=r1</span><br><span class="line">&gt;&gt; set sphere_scale,0.15</span><br></pre></td></tr></table></figure>
 
 
 
