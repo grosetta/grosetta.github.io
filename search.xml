@@ -83,6 +83,15 @@
 </blockquote>
 <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ sudo apt-get update    <span class="comment">#更新一下源</span></span><br></pre></td></tr></table></figure>
 
+<h2 id="wsl常见问题"><a href="#wsl常见问题" class="headerlink" title="wsl常见问题"></a>wsl常见问题</h2><h3 id="查看此电脑上已经安装了哪几种linux发行版"><a href="#查看此电脑上已经安装了哪几种linux发行版" class="headerlink" title="查看此电脑上已经安装了哪几种linux发行版"></a>查看此电脑上已经安装了哪几种linux发行版</h3><figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line">&gt; wsl -l</span><br></pre></td></tr></table></figure>
+
+<h3 id="设置默认调用的wsl"><a href="#设置默认调用的wsl" class="headerlink" title="设置默认调用的wsl"></a>设置默认调用的wsl</h3><p>比如同时安装了kali和ubuntu或ubuntu不同版本，一般默认调用的是其中一种，下条命令可以更改默认发行版</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ wslconfig /setdefault Name    <span class="comment">#此处Name替换发行版名称（从wsl -l 中获取）</span></span><br></pre></td></tr></table></figure>
+
+
+
+
+
 ]]></content>
       <categories>
         <category>计算机相关</category>
