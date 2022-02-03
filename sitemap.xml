@@ -245,6 +245,13 @@
   </url>
   
   <url>
+    <loc>http://grosetta.github.io/tags/pymol/</loc>
+    <lastmod>2022-02-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
     <loc>http://grosetta.github.io/tags/shell/</loc>
     <lastmod>2022-02-03</lastmod>
     <changefreq>weekly</changefreq>
@@ -253,13 +260,6 @@
   
   <url>
     <loc>http://grosetta.github.io/tags/%E7%BC%96%E7%A8%8B/</loc>
-    <lastmod>2022-02-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
-    <loc>http://grosetta.github.io/tags/pymol/</loc>
     <lastmod>2022-02-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
