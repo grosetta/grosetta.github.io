@@ -4,6 +4,31 @@
   
     
     <entry>
+      <title>python脚本打包exe</title>
+      <link href="/2022/02/13/py2exe/"/>
+      <url>/2022/02/13/py2exe/</url>
+      
+        <content type="html"><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><p>python脚本打包，并为打包文件制作安装程序</p><span id="more"></span><h2 id="创建打包环境"><a href="#创建打包环境" class="headerlink" title="创建打包环境"></a>创建打包环境</h2><h3 id="安装pipenv"><a href="#安装pipenv" class="headerlink" title="安装pipenv"></a>安装pipenv</h3><figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&gt; pip install pipenv</span><br></pre></td></tr></table></figure><h3 id="使用pipenv"><a href="#使用pipenv" class="headerlink" title="使用pipenv"></a>使用pipenv</h3><p>创建一个新文件夹env</p><figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&gt; <span class="built_in">cd</span> env</span><br><span class="line">&gt; pipenv install --python <span class="number">3</span>.<span class="number">8</span>    #根据需要更改版本号</span><br><span class="line">&gt; pipenv install pyinstaller     #安装依赖的所有包,pyinstaller必装</span><br><span class="line">......</span><br></pre></td></tr></table></figure><h2 id="打包"><a href="#打包" class="headerlink" title="打包"></a>打包</h2><figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&gt; pyinstaller --distpath Release/ -w -i fig.ico --clean test.py</span><br></pre></td></tr></table></figure><p>More info: <a href="https://blog.csdn.net/frostime/article/details/90523062">参考文章</a></p><h2 id="为程序包创建安装程序"><a href="#为程序包创建安装程序" class="headerlink" title="为程序包创建安装程序"></a>为程序包创建安装程序</h2><p>上一步打包好的程序是一个文件夹，这一步是给这个文件夹创建一个安装程序（类似于常规软件安装界面），方便给他人使用</p><h3 id="安装Setup-factory"><a href="#安装Setup-factory" class="headerlink" title="安装Setup factory"></a>安装Setup factory</h3><p><a href="https://pan.baidu.com/s/1YWOwNIkxrTPlWWes6PH4BA">链接</a> 关注文末公众号，后台回复’setup’获取提取码。</p><h3 id="使用Setup-factory"><a href="#使用Setup-factory" class="headerlink" title="使用Setup factory"></a>使用Setup factory</h3><p><img src="/2022/02/13/py2exe/fig1.png#pic_center"></p><p>按照下图输入必要信息</p><p><img src="/2022/02/13/py2exe/fig2.png#pic_center"></p><p>建议制作32位的，这样同时兼容32位和64位系统<br><img src="/2022/02/13/py2exe/fig3.png#pic_center"></p><p>路径选择刚才打包的程序文件夹<br><img src="/2022/02/13/py2exe/fig4.png#pic_center"></p><p>以下步骤按照图片提示信息操作，没有提示信息的默认下一步<br><img src="/2022/02/13/py2exe/fig5.png#pic_center"><br><img src="/2022/02/13/py2exe/fig6.png#pic_center"><br><img src="/2022/02/13/py2exe/fig7.png#pic_center"><br><img src="/2022/02/13/py2exe/fig8.png#pic_center"><br><img src="/2022/02/13/py2exe/fig9.png#pic_center"><br><img src="/2022/02/13/py2exe/fig10.png#pic_center"><br><img src="/2022/02/13/py2exe/fig11.png#pic_center"><br><img src="/2022/02/13/py2exe/fig12.png#pic_center"><br><img src="/2022/02/13/py2exe/fig13.png#pic_center"><br><img src="/2022/02/13/py2exe/fig14.png#pic_center"></p>]]></content>
+      
+      
+      <categories>
+          
+          <category> 计算机相关 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> python </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>three_body有声书</title>
       <link href="/2022/01/26/%E4%B8%89%E4%BD%93%E6%9C%89%E5%A3%B0%E4%B9%A6/"/>
       <url>/2022/01/26/%E4%B8%89%E4%BD%93%E6%9C%89%E5%A3%B0%E4%B9%A6/</url>
