@@ -1,6 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>含非标准残基的多肽对接</title>
+    <url>/2022/03/12/%E5%A4%9A%E8%82%BD%E5%AF%B9%E6%8E%A5/</url>
+    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><p>对含有磷酸丝氨酸多肽的对接方法</p>
+<span id="more"></span>
+
+<blockquote>
+<p>最近需要对接一个含非标准残基的多肽对接，一开始我以为多肽对接和常规小分子对接一样，可试了一下发现对接的结果是啥么玩意儿啊，完全不是我想要的样子。了解后才发现，常规的小分子对接程序面对多肽这样的大分子量体系准确度完全不能保证。那么能用蛋白蛋白对接程序吗？显然也不能。蛋白蛋白对接适用于两个单体蛋白结构已知的情况，而且这两个单体蛋白的三维结构相对“刚性”（这是其对接原理决定的）。几经寻找才发现多肽对接有其专属的一类程序——peptide docking.<br>找了几个相关程序后发现它们都只能对接天然氨基酸的多肽，而我的多肽恰巧有一个磷酸化修饰的残基。几经辗转终于找到了一个应对方案（ADFR组合flexpepdock）</p>
+</blockquote>
+<h2 id="ADFR对接只含天然残基的多肽"><a href="#ADFR对接只含天然残基的多肽" class="headerlink" title="ADFR对接只含天然残基的多肽"></a>ADFR对接只含天然残基的多肽</h2><p><a href="https://ccsb.scripps.edu/adfr/downloads/"><font color="#0000FF">下载链接</font></a></p>
+<p>我的多肽中含磷酸丝氨酸，这一步姑且将磷酸丝氨酸视作常规丝氨酸。<br>我使用的windows版，安装过程无脑下一步就行了（最后一步选择学术用户，这样可以使用全功能）。安装好后，环境变量也自动设置好了，下文用到的命令，cmd中可直接调用。</p>
+<h3 id="对受体蛋白和多肽质子化"><a href="#对受体蛋白和多肽质子化" class="headerlink" title="对受体蛋白和多肽质子化"></a>对受体蛋白和多肽质子化</h3><figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line">&gt; reduce receptor.pdb &gt; receptor_H.pdb</span><br><span class="line">&gt; reduce peptide.pdb &gt; peptide_H.pdb</span><br></pre></td></tr></table></figure>
+
+<h3 id="转为pdbqt格式"><a href="#转为pdbqt格式" class="headerlink" title="转为pdbqt格式"></a>转为pdbqt格式</h3><figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line">&gt; prepare_receptor -r receptor_H.pdb</span><br><span class="line">&gt; prepare_ligand -l peptide_H.pdb</span><br></pre></td></tr></table></figure>
+
+<h3 id="用图形化界面打开上一步生成的受体pdbqt文件"><a href="#用图形化界面打开上一步生成的受体pdbqt文件" class="headerlink" title="用图形化界面打开上一步生成的受体pdbqt文件"></a>用图形化界面打开上一步生成的受体pdbqt文件</h3><p><img src="/2022/03/12/%E5%A4%9A%E8%82%BD%E5%AF%B9%E6%8E%A5/fig1.png#pic_center"><br><img src="/2022/03/12/%E5%A4%9A%E8%82%BD%E5%AF%B9%E6%8E%A5/fig2.png#pic_center"><br><img src="/2022/03/12/%E5%A4%9A%E8%82%BD%E5%AF%B9%E6%8E%A5/fig3.png#pic_center"></p>
+<blockquote>
+<p>红框中fills一列显示了所有预测的可能的结合位点，勾选你所认为的可能结合位点。</p>
+</blockquote>
+<p><img src="/2022/03/12/%E5%A4%9A%E8%82%BD%E5%AF%B9%E6%8E%A5/fig4.png#pic_center"></p>
+<blockquote>
+<p>依据上述勾选的结合位点设置结合盒子</p>
+</blockquote>
+<p><img src="/2022/03/12/%E5%A4%9A%E8%82%BD%E5%AF%B9%E6%8E%A5/fig5.png#pic_center"></p>
+<blockquote>
+<p>计算并生成trg文件</p>
+</blockquote>
+<p><img src="/2022/03/12/%E5%A4%9A%E8%82%BD%E5%AF%B9%E6%8E%A5/fig6.png#pic_center"></p>
+<h3 id="开始对接"><a href="#开始对接" class="headerlink" title="开始对接"></a>开始对接</h3><figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line">&gt; adcp -t *.trg -s npisdvd -N <span class="number">100</span> -n <span class="number">2500000</span> -o prefixname -ref peptide_H.pdb</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>-t 读取上一步生成的trg文件<br>-s 输入多肽序列，小写代表以loop形式对接，大写代表以螺旋形式对接<br>-N 代表进行独立构象搜索的次数<br>-n 每次构象搜索进行评分次数<br>-o 输出文件的前缀名<br>-ref 输出打分参照对比的初始结构文件</p>
+</blockquote>
+<blockquote>
+<p>对接结束后，选择你觉得最合理的一种对接形式，进行下一步保留磷酸化修饰的对接。<br>将所选的最优构象多肽和受体蛋白同时用pymol打开，手动恢复原有磷酸化修饰的丝氨酸的磷酸化状态，删除氢原子，整体输出为一个pdb文件。<br>对输出的pdb文件用文本编辑器打开，保证受体蛋白处于A链，多肽属于B链。<br>确保磷酸修饰的丝氨酸的磷酸基团原子名称如下所示:<br><img src="/2022/03/12/%E5%A4%9A%E8%82%BD%E5%AF%B9%E6%8E%A5/fig7.png#pic_center"></p>
+</blockquote>
+<h2 id="打开flexpepdock"><a href="#打开flexpepdock" class="headerlink" title="打开flexpepdock"></a>打开flexpepdock</h2><blockquote>
+<p>这是一个在线服务器，是为数不多的支持含有非标准残基（仅限磷酸化的丝氨酸）的多肽对接程序</p>
+</blockquote>
+<p><a href="http://flexpepdock.furmanlab.cs.huji.ac.il/index.php"><font color="#0000FF">网页地址</font></a></p>
+<p><img src="/2022/03/12/%E5%A4%9A%E8%82%BD%E5%AF%B9%E6%8E%A5/fig8.png#pic_center"></p>
+]]></content>
+      <categories>
+        <category>计算机相关</category>
+      </categories>
+      <tags>
+        <tag>多肽对接</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>用ccp4解析晶体结构</title>
     <url>/2022/02/22/ccp4/</url>
     <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><p>我自己的蛋白试了好多次根本不长晶体，也不知道自己为什么要学这玩意儿，反正看着官方demo不是多难，跟着做了一遍。步骤挺多的，所以想了想还是记录下来吧，兴许以后会用到呢？</p>
@@ -313,7 +362,7 @@
   </entry>
   <entry>
     <title>pymol常用命令——持续更新</title>
-    <url>/2021/12/31/pymol%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4%E2%80%94%E2%80%94%E6%8C%81%E7%BB%AD%E6%9B%B4%E6%96%B0/</url>
+    <url>/2021/12/31/pymol%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4_%E6%8C%81%E7%BB%AD%E6%9B%B4%E6%96%B0/</url>
     <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><p>pymol日常高频使用场景及对应的commond line</p>
 <span id="more"></span>
 
