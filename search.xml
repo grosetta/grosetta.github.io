@@ -1,6 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>rutracker薅资本家羊毛</title>
+    <url>/2022/03/13/rutracker/</url>
+    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><p>…</p>
+<span id="more"></span>
+
+<blockquote>
+<p>因为近期俄乌冲突，毛熊被制裁，于是放开了对本国最大的dao版网站rutracker的限制。上面各种po解软件。试了一下很多专业软件都能找到绿色版（这里不好提名字，你能想到的一般都有资源，只是可能版本号是较早的）</p>
+</blockquote>
+<h2 id="给chrome或edge浏览器安装rutracker访问插件"><a href="#给chrome或edge浏览器安装rutracker访问插件" class="headerlink" title="给chrome或edge浏览器安装rutracker访问插件"></a>给chrome或edge浏览器安装rutracker访问插件</h2><p><a href="rutracker.zip"><font color="#DC143C">下载链接</font></a>在这<br>怎么给浏览器安装插件自行百度，很容易。</p>
+<h2 id="借助必应搜索引擎搜索rutracker站内资源"><a href="#借助必应搜索引擎搜索rutracker站内资源" class="headerlink" title="借助必应搜索引擎搜索rutracker站内资源"></a>借助必应搜索引擎搜索rutracker站内资源</h2><blockquote>
+<p>rutracker想要搜索站内资源必须注册登录，不知什么原因rutracker现在不能注册新用户，无奈只能借助必应搜索引擎了。<br>搜索格式如下:</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">搜索资源名 site:http://rutracker.org</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>注意:搜索资源名与site之间有空格<br>搜索到的资源链接多数以bt种子的形式提供，迅雷下载即可。</p>
+</blockquote>
+<p><img src="/2022/03/13/rutracker/fig1.png#pic_center"></p>
+]]></content>
+      <categories>
+        <category>计算机相关</category>
+      </categories>
+      <tags>
+        <tag>软件下载</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>含非标准残基的多肽对接</title>
     <url>/2022/03/12/%E5%A4%9A%E8%82%BD%E5%AF%B9%E6%8E%A5/</url>
     <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><p>对含有磷酸丝氨酸多肽的对接方法</p>
@@ -361,7 +387,7 @@
 ]]></content>
   </entry>
   <entry>
-    <title>pymol常用命令——持续更新</title>
+    <title>pymol常用命令_持续更新</title>
     <url>/2021/12/31/pymol%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4_%E6%8C%81%E7%BB%AD%E6%9B%B4%E6%96%B0/</url>
     <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><p>pymol日常高频使用场景及对应的commond line</p>
 <span id="more"></span>
