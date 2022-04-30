@@ -1,6 +1,126 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>恒定pH条件下的分子动力学模拟</title>
+    <url>/2022/04/30/CPHMD/</url>
+    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><script class="meting-secondary-script-marker" src="\assets\js\Meting.min.js"></script><p>…</p>
+<span id="more"></span>
+
+
+<blockquote>
+<p>自然界中往往存在一些对PH值敏感的蛋白，当我们想要探究这些蛋白在不同PH条件下构象变化时自然离不开MD的辅助。遗憾的是Gromacs暂不支持恒定PH条件下的模拟，因为这涉及到了蛋白表面残基质子化状态需要时刻改变。一种折衷的方法是：用<code>propka</code>等预测工具预测蛋白极性/可质子化残基的pka值（因为实际蛋白表面的pka值可能受到邻近残基的影响而发生偏移），然后根据想要模拟的PH环境，自主确定各个可质子化残基质子化状态（比如某个残基pKa=4，pH环境为7，那么这个残基自然是处于离去质子的解离状态）。然后修改对应pdb文件中的残基名，比如脱去质子的CYS改名为CYM（这个问题文末有提及）。这种方法存在的最大缺点在于：质子化状态一但设定好就会一成不变，这和实际情况显然是不符的。因此我们今天不介绍这种方法，而是介绍在Amber中的实现方法。<br><strong>示例文件关注公众号“grosetta”,后台回复”<font color="#0000FF">ph</font>“自取</strong>。</p>
+</blockquote>
+<h2 id="1-准备结构"><a href="#1-准备结构" class="headerlink" title="1. 准备结构"></a>1. 准备结构</h2><blockquote>
+<p>有这样一张表(下图所示)，罗列了常见质子化残基，包括<code>ASP、GLU、HIS、CYS、LYS、TYR</code>. 第三列数据对应它们各自的pKa值。第二列对应它们在恒定PH环境模拟时Amber识别的名字，如果想让Amber在模拟时对某个残基上面的质子化状态”多多关照”,总得披上”马甲”好让Amber认识它吧。比如我想要模拟PH=7的环境，查看下表可以看出<code>ASP、GLU、HIS</code>在此条件下质子会发生解离，那么就把pdb文件中它们的名称改成对应的”马甲”。<code>ASP</code>→<code>AS4</code>、<code>GLU</code>→<code>GL4</code>、<code>HIS</code>→<code>HIP</code></p>
+</blockquote>
+<p><img src="/2022/04/30/CPHMD/figure1.png#pic_center"></p>
+<p>本次就以11个氨基酸长度的小肽<code>test.pdb</code>在pH为7的环境下模拟为例：</p>
+<h3 id="第一步，修改pdb文件"><a href="#第一步，修改pdb文件" class="headerlink" title="第一步，修改pdb文件"></a>第一步，修改pdb文件</h3><blockquote>
+<p>首先修改需要更换“马甲”的残基名，这里我们做了<code>ASP</code>→<code>AS4</code>、<code>GLU</code>→<code>GL4</code>修改，由于没有HIS残基，所以就不做考虑。此外该分子种有两个距离较靠近的CYS，我们想让他们之间成二硫键，所以修改做出修改：<code>CYS</code>→<code>CYX</code>。修改后的文件名为<code>test_fix.pdb</code></p>
+</blockquote>
+<p><img src="/2022/04/30/CPHMD/figure2.png#pic_center" alt="ASP→AS4名称更换示意"></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#用pdb4amber不加氢，补全缺失原子，连接二硫键</span></span><br><span class="line">pdb4amber -i test_fix.pdb --nohyd -o test_fix2.pdb</span><br><span class="line"><span class="comment">#不知道什么原因pdb4amber除氢总是失败，只能用下条命令自行除去了</span></span><br><span class="line">grep -v <span class="string">&#x27;.............H&#x27;</span> test_fix2.pdb &gt; test_fix3.pdb</span><br></pre></td></tr></table></figure>
+<p>下图所示，我们想要连接的二硫键并没有形成，什么原因呢？这是因为只有硫原子间距小于2.5Å时<code>pdb4amber</code>才会自动连接。不过也没关系，后面我们还能在构建拓扑时强制将它们连上。</p>
+<p><img src="/2022/04/30/CPHMD/figure3.png#pic_center"></p>
+<h3 id="第二步，构建拓扑"><a href="#第二步，构建拓扑" class="headerlink" title="第二步，构建拓扑"></a>第二步，构建拓扑</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#唤醒tleap程序</span></span><br><span class="line">tleap</span><br><span class="line"><span class="comment">#加载constph力场（底层用的amber_ff10力场，同时于蛋白而言等价于ff99SB）</span></span><br><span class="line"><span class="built_in">source</span> leaprc.constph</span><br><span class="line"><span class="built_in">source</span> leaprc.water.tip3p  <span class="comment">#为后面的抗衡离子添加力场</span></span><br><span class="line"><span class="comment">#加载修改好的pdb</span></span><br><span class="line">mol = loadPDB test_fix3.pdb</span><br><span class="line"><span class="comment">#连接二硫键</span></span><br><span class="line"><span class="comment">#遵循语法bond &lt;原子1&gt; &lt;原子2&gt; [bondtype]</span></span><br><span class="line"><span class="comment">#bondtype分三类：“-”单键、“=”双键、“#”三键、“:”芳香键,若不指定则默认是单键</span></span><br><span class="line">bond mol.4.SG mol.8.SG </span><br><span class="line"><span class="comment">#维持体系电中性</span></span><br><span class="line">addions mol Cl- 0</span><br><span class="line">addions mol Na+ 0</span><br><span class="line"><span class="comment">#保存拓扑、坐标</span></span><br><span class="line">saveAmberParm mol test.prmtop test.inpcrd</span><br><span class="line"><span class="comment">#退出tleap程序</span></span><br><span class="line">quit</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>注意，这里我们构建拓扑时没有添加水分子，这是因为本例要使用的是’隐式水‘模型。’隐式水‘不是真正的水分子，你可以把它理解为一个个数据点。启用’隐式水‘模型的参数为<code>icnstph=1</code>,需要将它添加到后文用到的以<code>*.in</code>为后缀的文件中。</p>
+</blockquote>
+<h3 id="第三步，准备恒定pH输入文件-cpin-file"><a href="#第三步，准备恒定pH输入文件-cpin-file" class="headerlink" title="第三步，准备恒定pH输入文件(cpin file)"></a>第三步，准备恒定pH输入文件(cpin file)</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#因为本例中我们只考虑了GLU、ASP的质子化状态改变，所以resname后面的参数改为它们对应的&#x27;马甲&#x27;——GL4、AS4</span></span><br><span class="line">cpinutil.py -resnames GL4 AS4 -p test.prmtop -o test.cpin</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-模拟"><a href="#2-模拟" class="headerlink" title="2.模拟"></a>2.模拟</h2><h3 id="第一步，EM"><a href="#第一步，EM" class="headerlink" title="第一步，EM"></a>第一步，EM</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#em.in文件在分享文件中的em文件夹内</span></span><br><span class="line">pmemd -O -i em/em.in -p test.prmtop -c test.inpcrd -o em/test_min.mdout -r em/test_min.rst -ref test.inpcrd -cpin test.cpin -inf em/em_mdinfo</span><br></pre></td></tr></table></figure>
+
+<h3 id="第二步，体系加热"><a href="#第二步，体系加热" class="headerlink" title="第二步，体系加热"></a>第二步，体系加热</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#heat.in文件在分享文件中的heat文件夹内</span></span><br><span class="line">pmemd -O -i heat/heat.in -p test.prmtop -c em/test_min.rst -o heat/test_heat.mdout -r heat/test_heat.rst -ref em/test_min.rst -cpin test.cpin -inf heat/heat_mdinfo</span><br></pre></td></tr></table></figure>
+
+<h3 id="第三步，预平衡"><a href="#第三步，预平衡" class="headerlink" title="第三步，预平衡"></a>第三步，预平衡</h3><blockquote>
+<ul>
+<li>这一步<code>*in</code>文件里需要添加或调整参数<code>solvph=</code>, <code>ntcnstph=</code>。</li>
+<li><code>solvph=</code>设定体系pH值，<code>ntcnstph=</code> 设置每隔多少步监测一次所选残基质子化状态。要注意的是，amber每次只能监测一个残基的状态，也就是说所选“滴定残基”(即需要质子化状态改变的残基）数越多，于单个残基而言监测间隔越长。这就需要我们进行适当取舍。amber官方举的例子：当选取滴定残基数为10时，监测步长设为5得到的结果比较好。可见即便amber可以模拟恒定pH条件，但这也是有限制的。本例中我们选取的滴定残基数总共就两个，所以<code>ntcnstph=</code>可以设得比较大，我设定为25。<em>（ps:后来才发现前面设置了三个“滴定残基”，不过影响应该不大）</em></li>
+</ul>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#pr.in文件在分享文件中的pr文件夹内</span></span><br><span class="line">pmemd -O -i pr/pr.in -p test.prmtop -c heat/test_heat.rst -o pr/test_pr.mdout -cpin test.cpin -r pr/test_pr.rst -cpout pr/test_pr.cpout -cprestrt pr/test_pr.cpin -inf pr/pr_mdinfo</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>本步输出的<code>test_pr.cpin</code>是<code>test.cpin</code>文件更新版。在预平衡中，“滴定残基”质子化状态发生了改变，所以需要将更新后的信息保存到新结果中，以供下一步成品模拟调用。  </p>
+</blockquote>
+<p><strong>无关紧要的内容</strong>👇👇👇</p>
+<hr>
+<p>如下图所示展示了Amber计算各种质子化状态之间的相对自由能差的原理。绿色区域的各种质子化状态的自由能在模拟过程中（t0）存入以<code>*cpin</code>为后缀的文件中。在当质子化状态又一次发生改变[下图红色区域]时(t0+Δt)依照下方公式即可计算出残基质子化前后自由能的变换。</p>
+<p><img src="/2022/04/30/CPHMD/figure4.png#pic_center" alt="Amber计算各种质子化状态之间的相对自由能差 原理示意图"></p>
+<hr>
+<p><strong>无关紧要的内容</strong>👆👆👆</p>
+<h3 id="第四步，成品模拟"><a href="#第四步，成品模拟" class="headerlink" title="第四步，成品模拟"></a>第四步，成品模拟</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#md.in文件在分享文件中的md文件夹内</span></span><br><span class="line">pmemd -O -i md/md.in -p test.prmtop -c pr/test_pr.rst -o md/test_md.mdout -cpin pr/test_pr.cpin -r md/test_md.rst -x md/test_md.nc -cpout md/test_md.cpout -cprestrt md/test_md.cpin -inf md/md_mdinfo</span><br></pre></td></tr></table></figure>
+
+<h2 id="3-结果分析"><a href="#3-结果分析" class="headerlink" title="3.结果分析"></a>3.结果分析</h2><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#结果输出到analyse文件夹内</span></span><br><span class="line">cphstats -i md/test_md.cpin md/test_md.cpout -o analyse/calcpka.dat --population analyse/populations.dat</span><br></pre></td></tr></table></figure>
+<blockquote>
+<ul>
+<li><code>calcpka.dat</code>文件中记录了每个滴定残基的预测pKa值及质子化存在时间比率等信息。本例由于运行时间很短，所以两个ASP质子化状态未改变，所以pKa没有预测值。</li>
+<li><code>populations.dat</code>文件记录了每个残基各种质子化状态及相应状态数量占比。</li>
+</ul>
+</blockquote>
+<p>除此之外，你也可以按照常规步骤分析其他的性质，比如构象变化、主成分、自由能等。</p>
+<h2 id="写在最后-👇👇👇"><a href="#写在最后-👇👇👇" class="headerlink" title="写在最后 👇👇👇"></a><strong>写在最后</strong> 👇👇👇</h2><hr>
+<p>::: block-1</p>
+<ul>
+<li>关于残基的”马甲”</li>
+</ul>
+<blockquote>
+<p>在Amber中，对于一些标准残基的特殊状态，我们往往用另一种名字替代。这样Amber才能识别，并施加适当的力场参数。大体有如下几种情况： </p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th align="center">原残基名</th>
+<th align="center">“马甲”</th>
+<th align="left">描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">CYS</td>
+<td align="center">CYX</td>
+<td align="left">半胱氨酸成二硫键</td>
+</tr>
+<tr>
+<td align="center">CYS</td>
+<td align="center">CYM</td>
+<td align="left">半胱氨酸和金属螯合/或用于恒定pH模拟的滴定碱基</td>
+</tr>
+<tr>
+<td align="center">HIS</td>
+<td align="center">HIE</td>
+<td align="left">见下图描述</td>
+</tr>
+<tr>
+<td align="center">HIS</td>
+<td align="center">HID</td>
+<td align="left">见下图描述</td>
+</tr>
+<tr>
+<td align="center">HIS</td>
+<td align="center">HIP</td>
+<td align="left">见下图描述/同时用于恒定pH模拟的滴定碱基</td>
+</tr>
+<tr>
+<td align="center">ASP</td>
+<td align="center">AS4</td>
+<td align="left">可用于恒定pH模拟的滴定碱基</td>
+</tr>
+<tr>
+<td align="center">GLU</td>
+<td align="center">GL4</td>
+<td align="left">可用于恒定pH模拟的滴定碱基</td>
+</tr>
+</tbody></table>
+<p>:::</p>
+<p><img src="/2022/04/30/CPHMD/figure5.png#pic_center"></p>
+]]></content>
+      <categories>
+        <category>计算机相关</category>
+      </categories>
+      <tags>
+        <tag>amber</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>rutracker薅资本家羊毛</title>
     <url>/2022/03/13/rutracker/</url>
     <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><script class="meting-secondary-script-marker" src="\assets\js\Meting.min.js"></script><p>…</p>
@@ -381,12 +501,6 @@
       </tags>
   </entry>
   <entry>
-    <title></title>
-    <url>/2021/12/31/gromacs%E6%89%80%E6%9C%89%E7%A8%8B%E5%BA%8F/</url>
-    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><script class="meting-secondary-script-marker" src="\assets\js\Meting.min.js"></script><p><a href="test.svg"><font color="#DC143C">矢量图片</font></a></p>
-]]></content>
-  </entry>
-  <entry>
     <title>pymol常用命令_持续更新</title>
     <url>/2021/12/31/pymol%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4_%E6%8C%81%E7%BB%AD%E6%9B%B4%E6%96%B0/</url>
     <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><script class="meting-secondary-script-marker" src="\assets\js\Meting.min.js"></script><p>pymol日常高频使用场景及对应的commond line</p>
@@ -445,7 +559,7 @@
       </tags>
   </entry>
   <entry>
-    <title>Shell编程常用命令——持续更新</title>
+    <title>Shell编程常用命令—持续更新</title>
     <url>/2021/12/31/shell_commond/</url>
     <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><script class="meting-secondary-script-marker" src="\assets\js\Meting.min.js"></script><p>Shell编程常用命令，毕竟非科班出身，没必要非得全部记住，需要时能找出来用就行。</p>
 <span id="more"></span>
@@ -462,6 +576,15 @@
 </ul>
 <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ sed -i <span class="string">&#x27;/关键字符/d&#x27;</span> filename </span><br></pre></td></tr></table></figure>
 
+<ul>
+<li><font color="#0000CD">在每行开始添加内容</font>  </li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ sed <span class="string">&quot;s/^/HEAD&amp;/g&quot;</span> test.file</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><font color="#0000CD">在每行结尾添加内容</font>  </li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ sed <span class="string">&quot;s/$/&amp;TAIL/g&quot;</span> test.file</span><br></pre></td></tr></table></figure>
 ]]></content>
       <categories>
         <category>计算机相关</category>
@@ -547,64 +670,6 @@
       <tags>
         <tag>pdb</tag>
         <tag>文件格式</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>模板1</title>
-    <url>/2021/12/29/hello-world/</url>
-    <content><![CDATA[<div class="hbe hbe-container" id="hexo-blog-encrypt" data-wpm="抱歉, 这个密码看着不太对, 请再试试." data-whm="抱歉, 这个文章不能被校验, 不过您还是能看看解密后的内容.">
-  <script id="hbeData" type="hbeData" data-hmacdigest="0e11a07878ab3a23f66793e656e8b60dbf3447540bf54a7de11bbe437f69d506">1b693c4938223286468132b2f7068bf67a7a8cfd5095d65051ba6e79c15968eb2211648052effa129b53869ad5d884444cdf0cef1f80b0bd9353669cb322f149b67f85a498e959864b7af9a741d2e75ea40fe89585e4925c398e4c0e7bbd59e29b4c06b709c764634dfd7aa6998d302ce908073b1f2579f67d4bb140767caa14c2a8ba203cb922479dda8ae7a3c0f7632aa4b866d9f1941f1527e91db0b9e4ff23772b64ab77ec7faac595b8f0e493c2a35ce03e217fac8c956f9c51f4e4b476ff8f48e64fd336198ff568c2ea3f484a627fedfbcc565869755d1e69c3046b88bd8291c22214104b31df8a8e6adfba571018d05a7a5f06be22a110b3eb4de5d88e873531629dbee9ffdd0832ee7c07887674394cd8c657866168e03ffe8ac61ffe820e1e6581e9cb3567f9a8504d8c543a4671266c32afe2f04d49102e68389abe805b197b44d8d90196560a5a018b8b059ebbab1458436f40447cb4f0700577e7dc0b38233383126fb35527ed7ab50098f97dec6d33203cf4b3c8e0fcc4cc9d9a9e01d70e2d5e12df233b55835beabaeed715282d92b77ad2bb014b8521f52f3bddf87989561eabb843ffd3eecd8ab726eee49433201faed327c1a50142af08cda91c19a6e7336ca1c89c6ea31e9e4d5d770d549e50dc12b1038024f512babf72043eeba8fe00f4664e36f1ddcfcb4a4df1b6256fc47f8efe55dd780459411f0c6ba0e7dd391292614f58a75e96802936821bcbaa9b8a50c9d7b64036a55c58cb5c42437516989ffbb712da1376971f5dcc9f4adfa44538134180911eb5b62bb4dc2501d11c88d93f1c833fadc6cbd07de04533caf65f8bec151f392709f8007cd712181d14d662283bdd8a339e56efa32475e314e23c01b5906e1c73c03e9ab2342231c3b992bd774a8509988f05b02a5beaaecba33fd78358816e16356d737516b610e417d7b3a8168f39794ba8502ac282fd572a390b2d2469de6d96b53d41268a9b554ee857c9740bd2abf9c25d6fa34da901f9c0458846a2a5a860399b37fcf9405ab597533867a5f97b6c834dc0f23ab3e0df4be35aa6bd6eaba6c93c827e3a31fb62d582a40941def21f8e77f53d472f9bb66a1e93f6bc1e17217497a134cee17487761ba6bb37dcf3b120bf6e7c2ed6242eb9fa7d6d57e853177cdd95dcd6a89aa16aac823e2a49cfa72e13e7c219e70e44f344bc698dc055dc71af200ca8f6e2916eed5e934b9d5f1bd9ad2ee01e7702ba4f06fab0f40a32760bd06849008eec8bbade63c9d46073101eb4e814cf8041af79e23e72f97724d133e5bfc049a21f59291cd0cb461f042d7a3711234672982b00e524b2cf54ec26c3c254c72e082ffddff37c52a4e19d29ea77a0bad07290604d7e34f7e145e35dc88b3fa5432a7c0d092012ee6047c4395c9a722310477d45c3fcb48960ddd8b62fa1dfff0953a2e8b93d0769a6224495d7beacdf2416f1e85091fa58a82b404084fafba6091e2843322e1814b7af485177df31b89b5922d320b7a6dd0f4fe42675c2aedbb15ace9da62382210bdb7d7dc3164320a0dbbe495d821b27139cf0303cd6c0348f53eb89e02997e9c55af9ea6d54dce1d1ca6561a068795237758e0d0c7e52b788a58c8bfadef6ec73a3bd682b09ecd8ab15b27923fed14e5df6c410f453dd49d91f8b0b7f5d49bfd3d5fe9c09f4ae4afdb2e918196581c732dab5279bb98e6d1e72955cd91a4e8bf932c83d7bcd1f3d6b02bec5753fc2003a25c8476bd86a067a60b50286642ff55c60f7c4bbb90cc9116bff6b8b6dc0503aac6cfa38602eadfed96d1e8085ecfd3d0e80b4d0a979f260e9122bc9f1d1aa8dc42464a4ff280856750f40fd4c50b38631c4df533ed9cf4b302368799b55706ac8a514be1ac9b4447bb2414cec497f23b85726a32ce24e0f8ed3e6340538d6c53234822992671d1f9a950b5df085877328ec16527a769e9dd94deb61f43eaa913ed4a0a39fc49d3d0022c48b47ef9d5c450587bb2690763334b80a0f4f1d253e205d121913e4d735452976689f415cba20a1cd4e33ecacb485a91ea7278d8b5234e552b91360f3198aa73c11848c50f07903cc035f2b44b2bf8e34ee638e0e46db501d516a15e6018f26d346751043bcb1bd0b5aa602d1a3a193591b9dc23d1941aa9da20266301c2560be694462e0ce88d57ffcc6e15d20ddcf847a530a94ce35a2b4caa9b52adfbc26708a039107fa4bd35d513a44d3d8821ce448651d41c51e7619414ca56ee81b36bfd101840246222f310870753379a1c5a6dd39c5f915561dff932c3bd458d28129d81d48fac0a86b23378f3b84a2f0bcf9919819d6bbf7aac106aa0e00ad9d0333c68ce490008beb1eac048cc38b019d823bb84d950ec34c1ae29c2b6d31bfd147e3e004f924f57be0f197c73d7fe1d9de0f7915cfceb4c23e2b0c0e3571f9b83718010fb13ec2c28f0972797b48aa5d5736c9a7f64c6fed4b9420b40b1cec05ed0f3cdd07af769d0bc4a154d47662cf5f32bfba0492125a6a998ccfc42781d9a24122b6d6729e85118664c38a80d326a77bc399e13dbd14e36269a8d51c342a3c4ce6fa6f5b78cff2d31fc6fb2c3dc6f2d23d43c3bfbb1b58fa4929a2b6ea8dbfa366997053accd70018faf83690329e2aec66f7ae2dfe4349c6509e13bf6e2f6fb168ee801c1b7ac062532e552f9dbcd8555f3bf03be2b46ab5f20be6472059c7dc8e7bf3829e02035a9ccb4ba244020ca6b330461f1e43daffdf54e8c9eeffac7ebf2c1eafec1a972605d9e94729280efb42672ce8edd64f49a25e583338ad223b287c58dbc233ba515b2be2117293cb700d88b6fe5236e911825a6ff6bcb2b0e717e8b6510e6d96ddf30c29c1f9e69c882af9ebf7659d09642fbfb6fa25e5d917abe44ecd33578e4e7f04c418f295e923bc86935086789ba432a1021546d1268a7d3fbd7bc71018f7f4abfc40bd1fa4cf4e1017c3db3e8c67b4c2d6db57defc49b9c40d42d745370ae3bc89912b9cbe5a426b864e56ff9cb5f1303a2d4971f7103e0e27d3068ed30d43b5e9ded287f01a24ceb1ed257faa54204ef88dd32540ad04e418ec91e0bb0e065dfc28fbe8b4a305737dfe926a6a81bf6f9713fe708ecfe2bbfc051b3768d098345b29a16cd5e534b43822619a08cceabec5f2be9b6c9625d4bc592623a1b86c0f3800da600236fdaeac7072fa014d72cbfdd9369426bc51acd32565b88d31ae7a2a0cb9c5a7082a658703f8b3314e3fde57c087525f69ad5cec45600a3caecdddc373e4a7122a6fc5cdcf6e24ef8d1db3b25c836d7e5d953e8b8230459479617744b50e15e5b14ad5bfe62277e9a24c380e03d5fe24f3d8538cbbb004e2f7c7f3789f085d2be54830b163c26b2a08980e2ba26ae87d51b5011a2d1f6ea7a6f5dcea528585da488d70b8e82af7ab326337b12862e7053a4467896ed0fbb6a5679bf282948fa8be31c5264c933ab3cf917c2f84ad6473f37a67abc2ecde5cd602154ef020c73ca4a30d96d7570066c615c999f810437af6f642e3c052eace6edc5e873b3e6720a87fb94b7e74f994284a9b86f2b93722fb1dc5d51226b00fd8c1dcf77d31ce5b54decb18b5f786b2bc4bc3ac541da32cb0fc65ae58d1e2d55ec43f79038fc4e2c2ceaeaa3287ce48a3e6acd8b29712aeccc58e19c78ce4c459a4bdadd04da53addbd40c60ce74fa451fda6f183107cae3122e1b350950882c59e6644dfb243a46d193b23bcb7cd09e6f1ebc1ad8fcac7a2f3aa9911aa93143b77b2de52cce3f6c7c9ba11cfadcc4c349d6dbf9fe56c6765f24759d04d0b595a0b25a7abc07bfd00345196f4c92b38631201387d6d628157ad6ff4a9d81926a88fd10c4bbccb1c73666ad42b710242631c257666b8316b9aadb0af376694d54ad6db93528a449cc22339d1377ba4790890d69cab1becf5f33f187b825790a6b1f</script>
-  <div class="hbe hbe-content">
-    <div class="hbe hbe-input hbe-input-default">
-      <input class="hbe hbe-input-field hbe-input-field-default" type="password" id="hbePass">
-      <label class="hbe hbe-input-label hbe-input-label-default" for="hbePass">
-        <span class="hbe hbe-input-label-content hbe-input-label-content-default">请在这里输入密码，回车确认</span>
-      </label>
-    </div>
-  </div>
-</div>
-<script data-pjax src="/lib/hbe.js"></script><link href="/css/hbe.style.css" rel="stylesheet" type="text/css">]]></content>
-      <categories>
-        <category>分类1</category>
-      </categories>
-      <tags>
-        <tag>标签1</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>模板2</title>
-    <url>/2021/12/26/new/</url>
-    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><script class="meting-secondary-script-marker" src="\assets\js\Meting.min.js"></script><p>description: 这是显示在首页的概述，正文内容均会被隐藏。</p>
-<span id="more"></span>
-<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a>  </p>
-<h2 id="视频"><a href="#视频" class="headerlink" title="视频"></a>视频</h2><div style="position: relative; width: 100%; height: 0; padding-bottom: 70%;"><iframe src="//player.bilibili.com/player.html?aid=934886232&bvid=BV1WM4y1c75J&cid=463818110&page=1&high_quality=1" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true" style="position: absolute; width: 75%; 
-height: 75%; left: 90px; top: 65px;"> </iframe></div>  
-
-
-
-<h2 id="音乐"><a href="#音乐" class="headerlink" title="音乐"></a>音乐</h2><div style="position: relative; width: 100%; height: 0; padding-bottom: 20%;"><iframe frameborder="no" border="0" marginwidth="0" marginheight="0" width="330" height="86" src="//music.163.com/outchain/player?type=2&id=27646786&auto=0&height=66" style="position: absolute; width: 75%; 
-height: 75%; left: 90px; top: 0;"> </iframe></div>
-
-
-
-]]></content>
-      <categories>
-        <category>分类2</category>
-      </categories>
-      <tags>
-        <tag>标签2</tag>
       </tags>
   </entry>
 </search>

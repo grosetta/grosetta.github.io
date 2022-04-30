@@ -1,0 +1,145 @@
+<!DOCTYPE html><html lang="zh-Hans"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"><meta name="description" content="恒定pH条件下的分子动力学模拟"><meta name="keywords" content="amber"><meta name="author" content="grosetta"><meta name="copyright" content="grosetta"><title>恒定pH条件下的分子动力学模拟 | grosetta - Blog</title><link rel="shortcut icon" href="/melody-favicon.ico"><link rel="stylesheet" href="/css/index.css?version=1.9.0"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@latest/css/font-awesome.min.css?version=1.9.0"><meta name="format-detection" content="telephone=no"><meta http-equiv="x-dns-prefetch-control" content="on"><link rel="dns-prefetch" href="https://cdn.jsdelivr.net"><meta http-equiv="Cache-Control" content="no-transform"><meta http-equiv="Cache-Control" content="no-siteapp"><script src="https://v1.hitokoto.cn/?encode=js&amp;charset=utf-8&amp;select=.footer_custom_text" defer></script><script>var GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"search.xml","languages":{"hits_empty":"找不到您查询的内容:${query}"}},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  hexoVersion: '6.0.0'
+} </script><meta name="generator" content="Hexo 6.0.0"></head><body><i class="fa fa-arrow-right" id="toggle-sidebar" aria-hidden="true"></i><div id="sidebar" data-display="true"><div class="toggle-sidebar-info text-center"><span data-toggle="切换文章详情">切换站点概览</span><hr></div><div class="sidebar-toc"><div class="sidebar-toc__title">目录</div><div class="sidebar-toc__progress"><span class="progress-notice">你已经读了</span><span class="progress-num">0</span><span class="progress-percentage">%</span><div class="sidebar-toc__progress-bar"></div></div><div class="sidebar-toc__content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-%E5%87%86%E5%A4%87%E7%BB%93%E6%9E%84"><span class="toc-number">1.</span> <span class="toc-text">1. 准备结构</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC%E4%B8%80%E6%AD%A5%EF%BC%8C%E4%BF%AE%E6%94%B9pdb%E6%96%87%E4%BB%B6"><span class="toc-number">1.1.</span> <span class="toc-text">第一步，修改pdb文件</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC%E4%BA%8C%E6%AD%A5%EF%BC%8C%E6%9E%84%E5%BB%BA%E6%8B%93%E6%89%91"><span class="toc-number">1.2.</span> <span class="toc-text">第二步，构建拓扑</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC%E4%B8%89%E6%AD%A5%EF%BC%8C%E5%87%86%E5%A4%87%E6%81%92%E5%AE%9ApH%E8%BE%93%E5%85%A5%E6%96%87%E4%BB%B6-cpin-file"><span class="toc-number">1.3.</span> <span class="toc-text">第三步，准备恒定pH输入文件(cpin file)</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-%E6%A8%A1%E6%8B%9F"><span class="toc-number">2.</span> <span class="toc-text">2.模拟</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC%E4%B8%80%E6%AD%A5%EF%BC%8CEM"><span class="toc-number">2.1.</span> <span class="toc-text">第一步，EM</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC%E4%BA%8C%E6%AD%A5%EF%BC%8C%E4%BD%93%E7%B3%BB%E5%8A%A0%E7%83%AD"><span class="toc-number">2.2.</span> <span class="toc-text">第二步，体系加热</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC%E4%B8%89%E6%AD%A5%EF%BC%8C%E9%A2%84%E5%B9%B3%E8%A1%A1"><span class="toc-number">2.3.</span> <span class="toc-text">第三步，预平衡</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC%E5%9B%9B%E6%AD%A5%EF%BC%8C%E6%88%90%E5%93%81%E6%A8%A1%E6%8B%9F"><span class="toc-number">2.4.</span> <span class="toc-text">第四步，成品模拟</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-%E7%BB%93%E6%9E%9C%E5%88%86%E6%9E%90"><span class="toc-number">3.</span> <span class="toc-text">3.结果分析</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%86%99%E5%9C%A8%E6%9C%80%E5%90%8E-%F0%9F%91%87%F0%9F%91%87%F0%9F%91%87"><span class="toc-number">4.</span> <span class="toc-text">写在最后 👇👇👇</span></a></li></ol></div></div><div class="author-info hide"><div class="author-info__avatar text-center"><img src="/img/avatar.png"></div><div class="author-info__name text-center">grosetta</div><div class="author-info__description text-center">gromacs&amp;rosetta</div><div class="follow-button"><a target="_blank" rel="noopener" href="https://github.com/grosetta">Follow Me</a></div><hr><div class="author-info-articles"><a class="author-info-articles__archives article-meta" href="/archives"><span class="pull-left">文章</span><span class="pull-right">14</span></a><a class="author-info-articles__tags article-meta" href="/tags"><span class="pull-left">标签</span><span class="pull-right">21</span></a><a class="author-info-articles__categories article-meta" href="/categories"><span class="pull-left">分类</span><span class="pull-right">3</span></a></div><hr><div class="author-info-links"><div class="author-info-links__title text-center">Links</div><a class="author-info-links__name text-center" target="_blank" rel="noopener" href="https://baidu.com">baidu</a><a class="author-info-links__name text-center" target="_blank" rel="noopener" href="https://google.com">google</a><a class="author-info-links__name text-center" target="_blank" rel="noopener" href="https://bing.com">bing</a></div></div></div><div id="content-outer"><div id="top-container" style="background-image: url(https://s2.loli.net/2022/04/30/29T4r6OISsRgkNq.png)"><div id="page-header"><span class="pull-left"> <a id="site-name" href="/">grosetta - Blog</a></span><i class="fa fa-bars toggle-menu pull-right" aria-hidden="true"></i><span class="pull-right menus">   <a class="site-page" href="/">主页</a><a class="site-page" href="/archives">归档</a><a class="site-page" href="/tags">标签</a><a class="site-page" href="/categories">分类</a><a class="site-page" href="/playlist">歌单</a></span><span class="pull-right"><a class="site-page social-icon search"><i class="fa fa-search"></i><span> 搜索</span></a></span></div><div id="post-info"><div id="post-title">恒定pH条件下的分子动力学模拟</div><div id="post-meta"><time class="post-meta__date"><i class="fa fa-calendar" aria-hidden="true"></i> 2022-04-30</time><span class="post-meta__separator">|</span><i class="fa fa-inbox post-meta__icon" aria-hidden="true"></i><a class="post-meta__categories" href="/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%9B%B8%E5%85%B3/">计算机相关</a><div class="post-meta-wordcount"><span>字数总计: </span><span class="word-count">2k</span><span class="post-meta__separator">|</span><span>阅读时长: 6 分钟</span></div></div></div></div><div class="layout" id="content-inner"><article id="post"><div class="article-container" id="post-content"><p>…</p>
+<span id="more"></span>
+
+
+<blockquote>
+<p>自然界中往往存在一些对PH值敏感的蛋白，当我们想要探究这些蛋白在不同PH条件下构象变化时自然离不开MD的辅助。遗憾的是Gromacs暂不支持恒定PH条件下的模拟，因为这涉及到了蛋白表面残基质子化状态需要时刻改变。一种折衷的方法是：用<code>propka</code>等预测工具预测蛋白极性/可质子化残基的pka值（因为实际蛋白表面的pka值可能受到邻近残基的影响而发生偏移），然后根据想要模拟的PH环境，自主确定各个可质子化残基质子化状态（比如某个残基pKa=4，pH环境为7，那么这个残基自然是处于离去质子的解离状态）。然后修改对应pdb文件中的残基名，比如脱去质子的CYS改名为CYM（这个问题文末有提及）。这种方法存在的最大缺点在于：质子化状态一但设定好就会一成不变，这和实际情况显然是不符的。因此我们今天不介绍这种方法，而是介绍在Amber中的实现方法。<br><strong>示例文件关注公众号“grosetta”,后台回复”<font color="#0000FF">ph</font>“自取</strong>。</p>
+</blockquote>
+<h2 id="1-准备结构"><a href="#1-准备结构" class="headerlink" title="1. 准备结构"></a>1. 准备结构</h2><blockquote>
+<p>有这样一张表(下图所示)，罗列了常见质子化残基，包括<code>ASP、GLU、HIS、CYS、LYS、TYR</code>. 第三列数据对应它们各自的pKa值。第二列对应它们在恒定PH环境模拟时Amber识别的名字，如果想让Amber在模拟时对某个残基上面的质子化状态”多多关照”,总得披上”马甲”好让Amber认识它吧。比如我想要模拟PH=7的环境，查看下表可以看出<code>ASP、GLU、HIS</code>在此条件下质子会发生解离，那么就把pdb文件中它们的名称改成对应的”马甲”。<code>ASP</code>→<code>AS4</code>、<code>GLU</code>→<code>GL4</code>、<code>HIS</code>→<code>HIP</code></p>
+</blockquote>
+<p><img src="/2022/04/30/CPHMD/figure1.png#pic_center"></p>
+<p>本次就以11个氨基酸长度的小肽<code>test.pdb</code>在pH为7的环境下模拟为例：</p>
+<h3 id="第一步，修改pdb文件"><a href="#第一步，修改pdb文件" class="headerlink" title="第一步，修改pdb文件"></a>第一步，修改pdb文件</h3><blockquote>
+<p>首先修改需要更换“马甲”的残基名，这里我们做了<code>ASP</code>→<code>AS4</code>、<code>GLU</code>→<code>GL4</code>修改，由于没有HIS残基，所以就不做考虑。此外该分子种有两个距离较靠近的CYS，我们想让他们之间成二硫键，所以修改做出修改：<code>CYS</code>→<code>CYX</code>。修改后的文件名为<code>test_fix.pdb</code></p>
+</blockquote>
+<p><img src="/2022/04/30/CPHMD/figure2.png#pic_center" alt="ASP→AS4名称更换示意"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#用pdb4amber不加氢，补全缺失原子，连接二硫键</span></span><br><span class="line">pdb4amber -i test_fix.pdb --nohyd -o test_fix2.pdb</span><br><span class="line"><span class="comment">#不知道什么原因pdb4amber除氢总是失败，只能用下条命令自行除去了</span></span><br><span class="line">grep -v <span class="string">&#x27;.............H&#x27;</span> test_fix2.pdb &gt; test_fix3.pdb</span><br></pre></td></tr></table></figure>
+<p>下图所示，我们想要连接的二硫键并没有形成，什么原因呢？这是因为只有硫原子间距小于2.5Å时<code>pdb4amber</code>才会自动连接。不过也没关系，后面我们还能在构建拓扑时强制将它们连上。</p>
+<p><img src="/2022/04/30/CPHMD/figure3.png#pic_center"></p>
+<h3 id="第二步，构建拓扑"><a href="#第二步，构建拓扑" class="headerlink" title="第二步，构建拓扑"></a>第二步，构建拓扑</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#唤醒tleap程序</span></span><br><span class="line">tleap</span><br><span class="line"><span class="comment">#加载constph力场（底层用的amber_ff10力场，同时于蛋白而言等价于ff99SB）</span></span><br><span class="line"><span class="built_in">source</span> leaprc.constph</span><br><span class="line"><span class="built_in">source</span> leaprc.water.tip3p  <span class="comment">#为后面的抗衡离子添加力场</span></span><br><span class="line"><span class="comment">#加载修改好的pdb</span></span><br><span class="line">mol = loadPDB test_fix3.pdb</span><br><span class="line"><span class="comment">#连接二硫键</span></span><br><span class="line"><span class="comment">#遵循语法bond &lt;原子1&gt; &lt;原子2&gt; [bondtype]</span></span><br><span class="line"><span class="comment">#bondtype分三类：“-”单键、“=”双键、“#”三键、“:”芳香键,若不指定则默认是单键</span></span><br><span class="line">bond mol.4.SG mol.8.SG </span><br><span class="line"><span class="comment">#维持体系电中性</span></span><br><span class="line">addions mol Cl- 0</span><br><span class="line">addions mol Na+ 0</span><br><span class="line"><span class="comment">#保存拓扑、坐标</span></span><br><span class="line">saveAmberParm mol test.prmtop test.inpcrd</span><br><span class="line"><span class="comment">#退出tleap程序</span></span><br><span class="line">quit</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>注意，这里我们构建拓扑时没有添加水分子，这是因为本例要使用的是’隐式水‘模型。’隐式水‘不是真正的水分子，你可以把它理解为一个个数据点。启用’隐式水‘模型的参数为<code>icnstph=1</code>,需要将它添加到后文用到的以<code>*.in</code>为后缀的文件中。</p>
+</blockquote>
+<h3 id="第三步，准备恒定pH输入文件-cpin-file"><a href="#第三步，准备恒定pH输入文件-cpin-file" class="headerlink" title="第三步，准备恒定pH输入文件(cpin file)"></a>第三步，准备恒定pH输入文件(cpin file)</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#因为本例中我们只考虑了GLU、ASP的质子化状态改变，所以resname后面的参数改为它们对应的&#x27;马甲&#x27;——GL4、AS4</span></span><br><span class="line">cpinutil.py -resnames GL4 AS4 -p test.prmtop -o test.cpin</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-模拟"><a href="#2-模拟" class="headerlink" title="2.模拟"></a>2.模拟</h2><h3 id="第一步，EM"><a href="#第一步，EM" class="headerlink" title="第一步，EM"></a>第一步，EM</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#em.in文件在分享文件中的em文件夹内</span></span><br><span class="line">pmemd -O -i em/em.in -p test.prmtop -c test.inpcrd -o em/test_min.mdout -r em/test_min.rst -ref test.inpcrd -cpin test.cpin -inf em/em_mdinfo</span><br></pre></td></tr></table></figure>
+
+<h3 id="第二步，体系加热"><a href="#第二步，体系加热" class="headerlink" title="第二步，体系加热"></a>第二步，体系加热</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#heat.in文件在分享文件中的heat文件夹内</span></span><br><span class="line">pmemd -O -i heat/heat.in -p test.prmtop -c em/test_min.rst -o heat/test_heat.mdout -r heat/test_heat.rst -ref em/test_min.rst -cpin test.cpin -inf heat/heat_mdinfo</span><br></pre></td></tr></table></figure>
+
+<h3 id="第三步，预平衡"><a href="#第三步，预平衡" class="headerlink" title="第三步，预平衡"></a>第三步，预平衡</h3><blockquote>
+<ul>
+<li>这一步<code>*in</code>文件里需要添加或调整参数<code>solvph=</code>, <code>ntcnstph=</code>。</li>
+<li><code>solvph=</code>设定体系pH值，<code>ntcnstph=</code> 设置每隔多少步监测一次所选残基质子化状态。要注意的是，amber每次只能监测一个残基的状态，也就是说所选“滴定残基”(即需要质子化状态改变的残基）数越多，于单个残基而言监测间隔越长。这就需要我们进行适当取舍。amber官方举的例子：当选取滴定残基数为10时，监测步长设为5得到的结果比较好。可见即便amber可以模拟恒定pH条件，但这也是有限制的。本例中我们选取的滴定残基数总共就两个，所以<code>ntcnstph=</code>可以设得比较大，我设定为25。<em>（ps:后来才发现前面设置了三个“滴定残基”，不过影响应该不大）</em></li>
+</ul>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#pr.in文件在分享文件中的pr文件夹内</span></span><br><span class="line">pmemd -O -i pr/pr.in -p test.prmtop -c heat/test_heat.rst -o pr/test_pr.mdout -cpin test.cpin -r pr/test_pr.rst -cpout pr/test_pr.cpout -cprestrt pr/test_pr.cpin -inf pr/pr_mdinfo</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>本步输出的<code>test_pr.cpin</code>是<code>test.cpin</code>文件更新版。在预平衡中，“滴定残基”质子化状态发生了改变，所以需要将更新后的信息保存到新结果中，以供下一步成品模拟调用。  </p>
+</blockquote>
+<p><strong>无关紧要的内容</strong>👇👇👇</p>
+<hr>
+<p>如下图所示展示了Amber计算各种质子化状态之间的相对自由能差的原理。绿色区域的各种质子化状态的自由能在模拟过程中（t0）存入以<code>*cpin</code>为后缀的文件中。在当质子化状态又一次发生改变[下图红色区域]时(t0+Δt)依照下方公式即可计算出残基质子化前后自由能的变换。</p>
+<p><img src="/2022/04/30/CPHMD/figure4.png#pic_center" alt="Amber计算各种质子化状态之间的相对自由能差 原理示意图"></p>
+<hr>
+<p><strong>无关紧要的内容</strong>👆👆👆</p>
+<h3 id="第四步，成品模拟"><a href="#第四步，成品模拟" class="headerlink" title="第四步，成品模拟"></a>第四步，成品模拟</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#md.in文件在分享文件中的md文件夹内</span></span><br><span class="line">pmemd -O -i md/md.in -p test.prmtop -c pr/test_pr.rst -o md/test_md.mdout -cpin pr/test_pr.cpin -r md/test_md.rst -x md/test_md.nc -cpout md/test_md.cpout -cprestrt md/test_md.cpin -inf md/md_mdinfo</span><br></pre></td></tr></table></figure>
+
+<h2 id="3-结果分析"><a href="#3-结果分析" class="headerlink" title="3.结果分析"></a>3.结果分析</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#结果输出到analyse文件夹内</span></span><br><span class="line">cphstats -i md/test_md.cpin md/test_md.cpout -o analyse/calcpka.dat --population analyse/populations.dat</span><br></pre></td></tr></table></figure>
+<blockquote>
+<ul>
+<li><code>calcpka.dat</code>文件中记录了每个滴定残基的预测pKa值及质子化存在时间比率等信息。本例由于运行时间很短，所以两个ASP质子化状态未改变，所以pKa没有预测值。</li>
+<li><code>populations.dat</code>文件记录了每个残基各种质子化状态及相应状态数量占比。</li>
+</ul>
+</blockquote>
+<p>除此之外，你也可以按照常规步骤分析其他的性质，比如构象变化、主成分、自由能等。</p>
+<h2 id="写在最后-👇👇👇"><a href="#写在最后-👇👇👇" class="headerlink" title="写在最后 👇👇👇"></a><strong>写在最后</strong> 👇👇👇</h2><hr>
+<p>::: block-1</p>
+<ul>
+<li>关于残基的”马甲”</li>
+</ul>
+<blockquote>
+<p>在Amber中，对于一些标准残基的特殊状态，我们往往用另一种名字替代。这样Amber才能识别，并施加适当的力场参数。大体有如下几种情况： </p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th align="center">原残基名</th>
+<th align="center">“马甲”</th>
+<th align="left">描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">CYS</td>
+<td align="center">CYX</td>
+<td align="left">半胱氨酸成二硫键</td>
+</tr>
+<tr>
+<td align="center">CYS</td>
+<td align="center">CYM</td>
+<td align="left">半胱氨酸和金属螯合/或用于恒定pH模拟的滴定碱基</td>
+</tr>
+<tr>
+<td align="center">HIS</td>
+<td align="center">HIE</td>
+<td align="left">见下图描述</td>
+</tr>
+<tr>
+<td align="center">HIS</td>
+<td align="center">HID</td>
+<td align="left">见下图描述</td>
+</tr>
+<tr>
+<td align="center">HIS</td>
+<td align="center">HIP</td>
+<td align="left">见下图描述/同时用于恒定pH模拟的滴定碱基</td>
+</tr>
+<tr>
+<td align="center">ASP</td>
+<td align="center">AS4</td>
+<td align="left">可用于恒定pH模拟的滴定碱基</td>
+</tr>
+<tr>
+<td align="center">GLU</td>
+<td align="center">GL4</td>
+<td align="left">可用于恒定pH模拟的滴定碱基</td>
+</tr>
+</tbody></table>
+<p>:::</p>
+<p><img src="/2022/04/30/CPHMD/figure5.png#pic_center"></p>
+</div></article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="mailto:undefined">grosetta</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="http://grosetta.github.io/2022/04/30/CPHMD/">http://grosetta.github.io/2022/04/30/CPHMD/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="http://grosetta.github.io">grosetta - Blog</a>！</span></div></div><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/amber/">amber</a></div><div class="post-qr-code"><div class="post-qr-code-item"><img class="post-qr-code__img" src="https://s2.loli.net/2021/12/30/HQjh8kCXqixy93L.jpg"><div class="post-qr-code__desc">微信公众号</div></div></div><nav id="pagination"><div class="next-post pull-right"><a href="/2022/03/13/rutracker/"><span>rutracker薅资本家羊毛</span><i class="fa fa-chevron-right"></i></a></div></nav><div class="post-adv"><a target="_blank" rel="noopener" href="https://www.vultr.com/?ref=7231808"><img src="https://www.vultr.com/media/banner_1.png" width="728" height="90"></a></div><div id="vcomment"></div><script src="https://cdn1.lncld.net/static/js/3.0.4/av-min.js"></script><script src="https://cdn.jsdelivr.net/npm/valine/dist/Valine.min.js"></script><script>var notify = 'false' == 'true';
+var verify = 'false' == 'true';
+var record_ip = 'false' == 'true';
+var GUEST_INFO = ['nick','mail','link'];
+var guest_info = 'nick,mail,link'.split(',').filter(function(item){
+  return GUEST_INFO.indexOf(item) > -1
+});
+guest_info = guest_info.length == 0 ? GUEST_INFO :guest_info;
+window.valine = new Valine({
+  el:'#vcomment',
+  notify:notify,
+  verify:verify,
+  recordIP:record_ip,
+  appId:'U48qcFkbwEOtnVko3LxFfYiF-gzGzoHsz',
+  appKey:'hrOtPj2wCTuKox0g7LwEYGUe',
+  placeholder:'Just go go',
+  avatar:'mm',
+  guest_info:guest_info,
+  pageSize:'10',
+  lang: 'zh-cn'
+})</script></div></div><footer class="footer-bg" style="background-image: url(https://s2.loli.net/2022/04/30/29T4r6OISsRgkNq.png)"><div class="layout" id="footer"><div class="copyright">&copy;2021 - 2022 By grosetta</div><div class="framework-info"><span>驱动 - </span><a target="_blank" rel="noopener" href="http://hexo.io"><span>Hexo</span></a><span class="footer-separator">|</span><span>主题 - </span><a target="_blank" rel="noopener" href="https://github.com/Molunerfinn/hexo-theme-melody"><span>Melody</span></a></div><div class="footer_custom_text">hitokoto</div><div class="busuanzi"><script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><span id="busuanzi_container_page_pv"><i class="fa fa-file"></i><span id="busuanzi_value_page_pv"></span><span></span></span></div></div></footer><i class="fa fa-arrow-up" id="go-up" aria-hidden="true"></i><script src="https://cdn.jsdelivr.net/npm/animejs@latest/anime.min.js"></script><script src="https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@latest/velocity.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-ui-pack@latest/velocity.ui.min.js"></script><script src="/js/utils.js?version=1.9.0"></script><script src="/js/fancybox.js?version=1.9.0"></script><script src="/js/sidebar.js?version=1.9.0"></script><script src="/js/copy.js?version=1.9.0"></script><script src="/js/fireworks.js?version=1.9.0"></script><script src="/js/transition.js?version=1.9.0"></script><script src="/js/scroll.js?version=1.9.0"></script><script src="/js/head.js?version=1.9.0"></script><script src="/js/search/local-search.js"></script><script>if(/Android|webOS|iPhone|iPod|iPad|BlackBerry/i.test(navigator.userAgent)) {
+  $('#nav').addClass('is-mobile')
+  $('footer').addClass('is-mobile')
+  $('#top-container').addClass('is-mobile')
+}</script><div class="search-dialog" id="local-search"><div class="search-dialog__title" id="local-search-title">本地搜索</div><div id="local-input-panel"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章"></div></div></div><hr><div id="local-search-results"><div id="local-hits"></div><div id="local-stats"><div class="local-search-stats__hr" id="hr"><span>由</span> <a target="_blank" rel="noopener" href="https://github.com/wzpan/hexo-generator-search" style="color:#49B1F5;">hexo-generator-search</a>
+ <span>提供支持</span></div></div></div><span class="search-close-button"><i class="fa fa-times"></i></span></div><div class="search-mask"></div></body></html>
