@@ -18,15 +18,15 @@
 <h2 id="1-准备结构"><a href="#1-准备结构" class="headerlink" title="1. 准备结构"></a>1. 准备结构</h2><blockquote>
 <p>有这样一张表(下图所示)，罗列了常见质子化残基，包括<code>ASP、GLU、HIS、CYS、LYS、TYR</code>. 第三列数据对应它们各自的pKa值。第二列对应它们在恒定PH环境模拟时Amber识别的名字，如果想让Amber在模拟时对某个残基上面的质子化状态”多多关照”,总得披上”马甲”好让Amber认识它吧。比如我想要模拟PH=7的环境，查看下表可以看出<code>ASP、GLU、HIS</code>在此条件下质子会发生解离，那么就把pdb文件中它们的名称改成对应的”马甲”。<code>ASP</code>→<code>AS4</code>、<code>GLU</code>→<code>GL4</code>、<code>HIS</code>→<code>HIP</code></p>
 </blockquote>
-<p><img src="/2022/04/30/CPHMD/figure1.png#pic_center"></p>
+<p><img src="/2022/04/30/CPHMD/fig1.png#pic_center"></p>
 <p>本次就以11个氨基酸长度的小肽<code>test.pdb</code>在pH为7的环境下模拟为例：</p>
 <h3 id="第一步，修改pdb文件"><a href="#第一步，修改pdb文件" class="headerlink" title="第一步，修改pdb文件"></a>第一步，修改pdb文件</h3><blockquote>
 <p>首先修改需要更换“马甲”的残基名，这里我们做了<code>ASP</code>→<code>AS4</code>、<code>GLU</code>→<code>GL4</code>修改，由于没有HIS残基，所以就不做考虑。此外该分子种有两个距离较靠近的CYS，我们想让他们之间成二硫键，所以修改做出修改：<code>CYS</code>→<code>CYX</code>。修改后的文件名为<code>test_fix.pdb</code></p>
 </blockquote>
-<p><img src="/2022/04/30/CPHMD/figure2.png#pic_center" alt="ASP→AS4名称更换示意"></p>
+<p><img src="/2022/04/30/CPHMD/fig2.png#pic_center" alt="ASP→AS4名称更换示意"></p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#用pdb4amber不加氢，补全缺失原子，连接二硫键</span></span><br><span class="line">pdb4amber -i test_fix.pdb --nohyd -o test_fix2.pdb</span><br><span class="line"><span class="comment">#不知道什么原因pdb4amber除氢总是失败，只能用下条命令自行除去了</span></span><br><span class="line">grep -v <span class="string">&#x27;.............H&#x27;</span> test_fix2.pdb &gt; test_fix3.pdb</span><br></pre></td></tr></table></figure>
 <p>下图所示，我们想要连接的二硫键并没有形成，什么原因呢？这是因为只有硫原子间距小于2.5Å时<code>pdb4amber</code>才会自动连接。不过也没关系，后面我们还能在构建拓扑时强制将它们连上。</p>
-<p><img src="/2022/04/30/CPHMD/figure3.png#pic_center"></p>
+<p><img src="/2022/04/30/CPHMD/fig3.png#pic_center"></p>
 <h3 id="第二步，构建拓扑"><a href="#第二步，构建拓扑" class="headerlink" title="第二步，构建拓扑"></a>第二步，构建拓扑</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#唤醒tleap程序</span></span><br><span class="line">tleap</span><br><span class="line"><span class="comment">#加载constph力场（底层用的amber_ff10力场，同时于蛋白而言等价于ff99SB）</span></span><br><span class="line"><span class="built_in">source</span> leaprc.constph</span><br><span class="line"><span class="built_in">source</span> leaprc.water.tip3p  <span class="comment">#为后面的抗衡离子添加力场</span></span><br><span class="line"><span class="comment">#加载修改好的pdb</span></span><br><span class="line">mol = loadPDB test_fix3.pdb</span><br><span class="line"><span class="comment">#连接二硫键</span></span><br><span class="line"><span class="comment">#遵循语法bond &lt;原子1&gt; &lt;原子2&gt; [bondtype]</span></span><br><span class="line"><span class="comment">#bondtype分三类：“-”单键、“=”双键、“#”三键、“:”芳香键,若不指定则默认是单键</span></span><br><span class="line">bond mol.4.SG mol.8.SG </span><br><span class="line"><span class="comment">#维持体系电中性</span></span><br><span class="line">addions mol Cl- 0</span><br><span class="line">addions mol Na+ 0</span><br><span class="line"><span class="comment">#保存拓扑、坐标</span></span><br><span class="line">saveAmberParm mol test.prmtop test.inpcrd</span><br><span class="line"><span class="comment">#退出tleap程序</span></span><br><span class="line">quit</span><br></pre></td></tr></table></figure>
 <blockquote>
 <p>注意，这里我们构建拓扑时没有添加水分子，这是因为本例要使用的是’隐式水‘模型。’隐式水‘不是真正的水分子，你可以把它理解为一个个数据点。启用’隐式水‘模型的参数为<code>icnstph=1</code>,需要将它添加到后文用到的以<code>*.in</code>为后缀的文件中。</p>
@@ -50,7 +50,7 @@
 <p><strong>无关紧要的内容</strong>👇👇👇</p>
 <hr>
 <p>如下图所示展示了Amber计算各种质子化状态之间的相对自由能差的原理。绿色区域的各种质子化状态的自由能在模拟过程中（t0）存入以<code>*cpin</code>为后缀的文件中。在当质子化状态又一次发生改变[下图红色区域]时(t0+Δt)依照下方公式即可计算出残基质子化前后自由能的变换。</p>
-<p><img src="/2022/04/30/CPHMD/figure4.png#pic_center" alt="Amber计算各种质子化状态之间的相对自由能差 原理示意图"></p>
+<p><img src="/2022/04/30/CPHMD/fig4.png#pic_center" alt="Amber计算各种质子化状态之间的相对自由能差 原理示意图"></p>
 <hr>
 <p><strong>无关紧要的内容</strong>👆👆👆</p>
 <h3 id="第四步，成品模拟"><a href="#第四步，成品模拟" class="headerlink" title="第四步，成品模拟"></a>第四步，成品模拟</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#md.in文件在分享文件中的md文件夹内</span></span><br><span class="line">pmemd -O -i md/md.in -p test.prmtop -c pr/test_pr.rst -o md/test_md.mdout -cpin pr/test_pr.cpin -r md/test_md.rst -x md/test_md.nc -cpout md/test_md.cpout -cprestrt md/test_md.cpin -inf md/md_mdinfo</span><br></pre></td></tr></table></figure>
@@ -116,7 +116,7 @@
 </tr>
 </tbody></table>
 <p>:::</p>
-<p><img src="/2022/04/30/CPHMD/figure5.png#pic_center"></p>
+<p><img src="/2022/04/30/CPHMD/fig5.png#pic_center"></p>
 </div></article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="mailto:undefined">grosetta</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="http://grosetta.github.io/2022/04/30/CPHMD/">http://grosetta.github.io/2022/04/30/CPHMD/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="http://grosetta.github.io">grosetta - Blog</a>！</span></div></div><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/amber/">amber</a></div><div class="post-qr-code"><div class="post-qr-code-item"><img class="post-qr-code__img" src="https://s2.loli.net/2021/12/30/HQjh8kCXqixy93L.jpg"><div class="post-qr-code__desc">微信公众号</div></div></div><nav id="pagination"><div class="next-post pull-right"><a href="/2022/03/13/rutracker/"><span>rutracker薅资本家羊毛</span><i class="fa fa-chevron-right"></i></a></div></nav><div class="post-adv"><a target="_blank" rel="noopener" href="https://www.vultr.com/?ref=7231808"><img src="https://www.vultr.com/media/banner_1.png" width="728" height="90"></a></div><div id="vcomment"></div><script src="https://cdn1.lncld.net/static/js/3.0.4/av-min.js"></script><script src="https://cdn.jsdelivr.net/npm/valine/dist/Valine.min.js"></script><script>var notify = 'false' == 'true';
 var verify = 'false' == 'true';
 var record_ip = 'false' == 'true';

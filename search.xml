@@ -1,198 +1,60 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>恒定pH条件下的分子动力学模拟</title>
-    <url>/2022/04/30/CPHMD/</url>
-    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><script class="meting-secondary-script-marker" src="\assets\js\Meting.min.js"></script><p>…</p>
+    <title>293细胞培养</title>
+    <url>/2021/12/31/293cell/</url>
+    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><script class="meting-secondary-script-marker" src="\assets\js\Meting.min.js"></script><p>最近在做293细胞给药检测荧光变化的实验，以往只做过昆虫悬浮细胞培养，第一次接触贴壁细胞说实话内心还是有些犯怵的。<br>结合在网上搜刮到的一些资料和近几天实操结果记录一下心得体会。</p>
 <span id="more"></span>
-
-
-<blockquote>
-<p>自然界中往往存在一些对PH值敏感的蛋白，当我们想要探究这些蛋白在不同PH条件下构象变化时自然离不开MD的辅助。遗憾的是Gromacs暂不支持恒定PH条件下的模拟，因为这涉及到了蛋白表面残基质子化状态需要时刻改变。一种折衷的方法是：用<code>propka</code>等预测工具预测蛋白极性/可质子化残基的pka值（因为实际蛋白表面的pka值可能受到邻近残基的影响而发生偏移），然后根据想要模拟的PH环境，自主确定各个可质子化残基质子化状态（比如某个残基pKa=4，pH环境为7，那么这个残基自然是处于离去质子的解离状态）。然后修改对应pdb文件中的残基名，比如脱去质子的CYS改名为CYM（这个问题文末有提及）。这种方法存在的最大缺点在于：质子化状态一但设定好就会一成不变，这和实际情况显然是不符的。因此我们今天不介绍这种方法，而是介绍在Amber中的实现方法。<br><strong>示例文件关注公众号“grosetta”,后台回复”<font color="#0000FF">ph</font>“自取</strong>。</p>
-</blockquote>
-<h2 id="1-准备结构"><a href="#1-准备结构" class="headerlink" title="1. 准备结构"></a>1. 准备结构</h2><blockquote>
-<p>有这样一张表(下图所示)，罗列了常见质子化残基，包括<code>ASP、GLU、HIS、CYS、LYS、TYR</code>. 第三列数据对应它们各自的pKa值。第二列对应它们在恒定PH环境模拟时Amber识别的名字，如果想让Amber在模拟时对某个残基上面的质子化状态”多多关照”,总得披上”马甲”好让Amber认识它吧。比如我想要模拟PH=7的环境，查看下表可以看出<code>ASP、GLU、HIS</code>在此条件下质子会发生解离，那么就把pdb文件中它们的名称改成对应的”马甲”。<code>ASP</code>→<code>AS4</code>、<code>GLU</code>→<code>GL4</code>、<code>HIS</code>→<code>HIP</code></p>
-</blockquote>
-<p><img src="/2022/04/30/CPHMD/figure1.png#pic_center"></p>
-<p>本次就以11个氨基酸长度的小肽<code>test.pdb</code>在pH为7的环境下模拟为例：</p>
-<h3 id="第一步，修改pdb文件"><a href="#第一步，修改pdb文件" class="headerlink" title="第一步，修改pdb文件"></a>第一步，修改pdb文件</h3><blockquote>
-<p>首先修改需要更换“马甲”的残基名，这里我们做了<code>ASP</code>→<code>AS4</code>、<code>GLU</code>→<code>GL4</code>修改，由于没有HIS残基，所以就不做考虑。此外该分子种有两个距离较靠近的CYS，我们想让他们之间成二硫键，所以修改做出修改：<code>CYS</code>→<code>CYX</code>。修改后的文件名为<code>test_fix.pdb</code></p>
-</blockquote>
-<p><img src="/2022/04/30/CPHMD/figure2.png#pic_center" alt="ASP→AS4名称更换示意"></p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#用pdb4amber不加氢，补全缺失原子，连接二硫键</span></span><br><span class="line">pdb4amber -i test_fix.pdb --nohyd -o test_fix2.pdb</span><br><span class="line"><span class="comment">#不知道什么原因pdb4amber除氢总是失败，只能用下条命令自行除去了</span></span><br><span class="line">grep -v <span class="string">&#x27;.............H&#x27;</span> test_fix2.pdb &gt; test_fix3.pdb</span><br></pre></td></tr></table></figure>
-<p>下图所示，我们想要连接的二硫键并没有形成，什么原因呢？这是因为只有硫原子间距小于2.5Å时<code>pdb4amber</code>才会自动连接。不过也没关系，后面我们还能在构建拓扑时强制将它们连上。</p>
-<p><img src="/2022/04/30/CPHMD/figure3.png#pic_center"></p>
-<h3 id="第二步，构建拓扑"><a href="#第二步，构建拓扑" class="headerlink" title="第二步，构建拓扑"></a>第二步，构建拓扑</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#唤醒tleap程序</span></span><br><span class="line">tleap</span><br><span class="line"><span class="comment">#加载constph力场（底层用的amber_ff10力场，同时于蛋白而言等价于ff99SB）</span></span><br><span class="line"><span class="built_in">source</span> leaprc.constph</span><br><span class="line"><span class="built_in">source</span> leaprc.water.tip3p  <span class="comment">#为后面的抗衡离子添加力场</span></span><br><span class="line"><span class="comment">#加载修改好的pdb</span></span><br><span class="line">mol = loadPDB test_fix3.pdb</span><br><span class="line"><span class="comment">#连接二硫键</span></span><br><span class="line"><span class="comment">#遵循语法bond &lt;原子1&gt; &lt;原子2&gt; [bondtype]</span></span><br><span class="line"><span class="comment">#bondtype分三类：“-”单键、“=”双键、“#”三键、“:”芳香键,若不指定则默认是单键</span></span><br><span class="line">bond mol.4.SG mol.8.SG </span><br><span class="line"><span class="comment">#维持体系电中性</span></span><br><span class="line">addions mol Cl- 0</span><br><span class="line">addions mol Na+ 0</span><br><span class="line"><span class="comment">#保存拓扑、坐标</span></span><br><span class="line">saveAmberParm mol test.prmtop test.inpcrd</span><br><span class="line"><span class="comment">#退出tleap程序</span></span><br><span class="line">quit</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>注意，这里我们构建拓扑时没有添加水分子，这是因为本例要使用的是’隐式水‘模型。’隐式水‘不是真正的水分子，你可以把它理解为一个个数据点。启用’隐式水‘模型的参数为<code>icnstph=1</code>,需要将它添加到后文用到的以<code>*.in</code>为后缀的文件中。</p>
-</blockquote>
-<h3 id="第三步，准备恒定pH输入文件-cpin-file"><a href="#第三步，准备恒定pH输入文件-cpin-file" class="headerlink" title="第三步，准备恒定pH输入文件(cpin file)"></a>第三步，准备恒定pH输入文件(cpin file)</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#因为本例中我们只考虑了GLU、ASP的质子化状态改变，所以resname后面的参数改为它们对应的&#x27;马甲&#x27;——GL4、AS4</span></span><br><span class="line">cpinutil.py -resnames GL4 AS4 -p test.prmtop -o test.cpin</span><br></pre></td></tr></table></figure>
-
-<h2 id="2-模拟"><a href="#2-模拟" class="headerlink" title="2.模拟"></a>2.模拟</h2><h3 id="第一步，EM"><a href="#第一步，EM" class="headerlink" title="第一步，EM"></a>第一步，EM</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#em.in文件在分享文件中的em文件夹内</span></span><br><span class="line">pmemd -O -i em/em.in -p test.prmtop -c test.inpcrd -o em/test_min.mdout -r em/test_min.rst -ref test.inpcrd -cpin test.cpin -inf em/em_mdinfo</span><br></pre></td></tr></table></figure>
-
-<h3 id="第二步，体系加热"><a href="#第二步，体系加热" class="headerlink" title="第二步，体系加热"></a>第二步，体系加热</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#heat.in文件在分享文件中的heat文件夹内</span></span><br><span class="line">pmemd -O -i heat/heat.in -p test.prmtop -c em/test_min.rst -o heat/test_heat.mdout -r heat/test_heat.rst -ref em/test_min.rst -cpin test.cpin -inf heat/heat_mdinfo</span><br></pre></td></tr></table></figure>
-
-<h3 id="第三步，预平衡"><a href="#第三步，预平衡" class="headerlink" title="第三步，预平衡"></a>第三步，预平衡</h3><blockquote>
+<h2 id="准备阶段"><a href="#准备阶段" class="headerlink" title="准备阶段"></a>准备阶段</h2><h3 id="需要用到的试剂器材"><a href="#需要用到的试剂器材" class="headerlink" title="需要用到的试剂器材"></a>需要用到的试剂器材</h3><blockquote>
 <ul>
-<li>这一步<code>*in</code>文件里需要添加或调整参数<code>solvph=</code>, <code>ntcnstph=</code>。</li>
-<li><code>solvph=</code>设定体系pH值，<code>ntcnstph=</code> 设置每隔多少步监测一次所选残基质子化状态。要注意的是，amber每次只能监测一个残基的状态，也就是说所选“滴定残基”(即需要质子化状态改变的残基）数越多，于单个残基而言监测间隔越长。这就需要我们进行适当取舍。amber官方举的例子：当选取滴定残基数为10时，监测步长设为5得到的结果比较好。可见即便amber可以模拟恒定pH条件，但这也是有限制的。本例中我们选取的滴定残基数总共就两个，所以<code>ntcnstph=</code>可以设得比较大，我设定为25。<em>（ps:后来才发现前面设置了三个“滴定残基”，不过影响应该不大）</em></li>
+<li>含10%胎牛血清（FBS）和1%PS的DMEM完全培养基（提前用50ml离心管分装）  </li>
+<li>0.25%胰蛋白酶</li>
+<li>PBS缓冲液</li>
+<li>移液管</li>
+<li>10cm培养皿</li>
 </ul>
 </blockquote>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#pr.in文件在分享文件中的pr文件夹内</span></span><br><span class="line">pmemd -O -i pr/pr.in -p test.prmtop -c heat/test_heat.rst -o pr/test_pr.mdout -cpin test.cpin -r pr/test_pr.rst -cpout pr/test_pr.cpout -cprestrt pr/test_pr.cpin -inf pr/pr_mdinfo</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>本步输出的<code>test_pr.cpin</code>是<code>test.cpin</code>文件更新版。在预平衡中，“滴定残基”质子化状态发生了改变，所以需要将更新后的信息保存到新结果中，以供下一步成品模拟调用。  </p>
+<h2 id="复苏"><a href="#复苏" class="headerlink" title="复苏"></a>复苏</h2><blockquote>
+<p>这一步和复苏昆虫细胞一致。注意点无非是冻存的细胞拿到37度水浴锅的速度要快（尽快度过-4℃到4℃这个危险温度范围）；<br>另外培养基提前预热；细胞在还有一点团块时从水浴锅中取出，利用余热将剩余的溶解。</p>
 </blockquote>
-<p><strong>无关紧要的内容</strong>👇👇👇</p>
-<hr>
-<p>如下图所示展示了Amber计算各种质子化状态之间的相对自由能差的原理。绿色区域的各种质子化状态的自由能在模拟过程中（t0）存入以<code>*cpin</code>为后缀的文件中。在当质子化状态又一次发生改变[下图红色区域]时(t0+Δt)依照下方公式即可计算出残基质子化前后自由能的变换。</p>
-<p><img src="/2022/04/30/CPHMD/figure4.png#pic_center" alt="Amber计算各种质子化状态之间的相对自由能差 原理示意图"></p>
-<hr>
-<p><strong>无关紧要的内容</strong>👆👆👆</p>
-<h3 id="第四步，成品模拟"><a href="#第四步，成品模拟" class="headerlink" title="第四步，成品模拟"></a>第四步，成品模拟</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#md.in文件在分享文件中的md文件夹内</span></span><br><span class="line">pmemd -O -i md/md.in -p test.prmtop -c pr/test_pr.rst -o md/test_md.mdout -cpin pr/test_pr.cpin -r md/test_md.rst -x md/test_md.nc -cpout md/test_md.cpout -cprestrt md/test_md.cpin -inf md/md_mdinfo</span><br></pre></td></tr></table></figure>
-
-<h2 id="3-结果分析"><a href="#3-结果分析" class="headerlink" title="3.结果分析"></a>3.结果分析</h2><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#结果输出到analyse文件夹内</span></span><br><span class="line">cphstats -i md/test_md.cpin md/test_md.cpout -o analyse/calcpka.dat --population analyse/populations.dat</span><br></pre></td></tr></table></figure>
-<blockquote>
+<h2 id="传代"><a href="#传代" class="headerlink" title="传代"></a>传代</h2><blockquote>
+<p>这一步在一开始接触时很容易手忙脚乱。做过两次就好了。</p>
 <ul>
-<li><code>calcpka.dat</code>文件中记录了每个滴定残基的预测pKa值及质子化存在时间比率等信息。本例由于运行时间很短，所以两个ASP质子化状态未改变，所以pKa没有预测值。</li>
-<li><code>populations.dat</code>文件记录了每个残基各种质子化状态及相应状态数量占比。</li>
+<li>传代前先观察看细胞长的密度（大概估算一下,如果两两细胞之间的空隙普遍能再塞下一个细胞，细胞密度50%，若只能塞下半个细胞则密度约为75%），一般大于90%或长满再传<br>如果细胞培养基发黄了，立即更换培养基（没长满或密度低只要换上清不用传）</li>
+<li>确定可以传代了，则吸出上清，尽快沿壁加入5ml PBS ，由于293贴壁性较差，最好不要吹打，稍微晃一晃培养皿就好了，然后吸去PBS。相同的操作进行两次</li>
+<li>吸取1-2ml 0.25%胰蛋白酶均匀加到培养皿中。（我10cm的皿加1ml）常温下消化1-2min</li>
+<li>吸取5-6ml完全培养基加入到培养皿中（用以终止胰蛋白酶消化）。反复吹打，把壁上的细胞都吹下来。</li>
+<li>吸取上一步吹打下来的细胞悬液到15ml离心管中，1000r离心2.5min.</li>
+<li>直接倒掉上清，利用残留的一点上清悬起细胞（收轻轻敲打离心管，如果实在敲不下来那就等下一步加培养基稀释时用吸管吹吧）</li>
+<li>将细胞悬起之后记下数，尽量维持在1*10e6个/ml。浓了再加点培养基稀释。</li>
+<li>取新的皿，向其中加入8ml完全培养基。取上一步细胞悬液2ml加进去。吸管吹打几遍让细胞混匀。</li>
+<li>放进培养箱24h之后观察。</li>
 </ul>
 </blockquote>
-<p>除此之外，你也可以按照常规步骤分析其他的性质，比如构象变化、主成分、自由能等。</p>
-<h2 id="写在最后-👇👇👇"><a href="#写在最后-👇👇👇" class="headerlink" title="写在最后 👇👇👇"></a><strong>写在最后</strong> 👇👇👇</h2><hr>
-<p>::: block-1</p>
+<h2 id="冻存"><a href="#冻存" class="headerlink" title="冻存"></a>冻存</h2><blockquote>
 <ul>
-<li>关于残基的”马甲”</li>
+<li>前7步和传代一样，接下来用1ml含10%DMSO的完全培养基重悬；</li>
+<li>转移到冻存盒，-80℃存放72小时；</li>
+<li>转移到液氮罐长存。</li>
 </ul>
-<blockquote>
-<p>在Amber中，对于一些标准残基的特殊状态，我们往往用另一种名字替代。这样Amber才能识别，并施加适当的力场参数。大体有如下几种情况： </p>
 </blockquote>
-<table>
-<thead>
-<tr>
-<th align="center">原残基名</th>
-<th align="center">“马甲”</th>
-<th align="left">描述</th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="center">CYS</td>
-<td align="center">CYX</td>
-<td align="left">半胱氨酸成二硫键</td>
-</tr>
-<tr>
-<td align="center">CYS</td>
-<td align="center">CYM</td>
-<td align="left">半胱氨酸和金属螯合/或用于恒定pH模拟的滴定碱基</td>
-</tr>
-<tr>
-<td align="center">HIS</td>
-<td align="center">HIE</td>
-<td align="left">见下图描述</td>
-</tr>
-<tr>
-<td align="center">HIS</td>
-<td align="center">HID</td>
-<td align="left">见下图描述</td>
-</tr>
-<tr>
-<td align="center">HIS</td>
-<td align="center">HIP</td>
-<td align="left">见下图描述/同时用于恒定pH模拟的滴定碱基</td>
-</tr>
-<tr>
-<td align="center">ASP</td>
-<td align="center">AS4</td>
-<td align="left">可用于恒定pH模拟的滴定碱基</td>
-</tr>
-<tr>
-<td align="center">GLU</td>
-<td align="center">GL4</td>
-<td align="left">可用于恒定pH模拟的滴定碱基</td>
-</tr>
-</tbody></table>
-<p>:::</p>
-<p><img src="/2022/04/30/CPHMD/figure5.png#pic_center"></p>
+<h2 id="转染"><a href="#转染" class="headerlink" title="转染"></a>转染</h2><blockquote>
+<ul>
+<li>5ml不含双抗、不含胎牛血清的DMEM加入10微克DNA，室温下放置5min;</li>
+<li>5ml不含双抗、不含胎牛血清的DMEM加入2~3倍质量的PEI（别问我为什么用这个，问就是这个最便宜，hhh），室温孵育5min;</li>
+<li>含PEI的DMEM加入到含DNA的DMEM中，室温孵育15-20min;(顺序千万不能弄错)；</li>
+<li>加入到细胞密度大于75%的培养皿中（原有的培养基已经移除），等待4-6h，更换新鲜含双抗的完全培养基继续培养36-48h(中间视情况选择是否更换培养基)。</li>
+</ul>
+<p>像293这种容易转染的细胞第四步4h足够了，因为PEI这玩意儿还是很毒的，能少存在一会儿最好。<br>此外在有PEI存在培养基的情况下万不可添加抗生素，看网上说PEI改变细胞膜通透性，抗生素若存在的话进入细胞中影响细胞生长。  </p>
+</blockquote>
+<p>相关帖子：<a href="https://zhuanlan.zhihu.com/p/163109490"><font color="#0000FF">知乎:293protocal</font></a> 、 <a href="https://www.biomart.cn/experiment/review/92.htm"><font color="#0000FF">丁香园:PEI转染</font></a></p>
 ]]></content>
       <categories>
-        <category>计算机相关</category>
+        <category>实验相关</category>
       </categories>
       <tags>
-        <tag>amber</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>rutracker薅资本家羊毛</title>
-    <url>/2022/03/13/rutracker/</url>
-    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><script class="meting-secondary-script-marker" src="\assets\js\Meting.min.js"></script><p>…</p>
-<span id="more"></span>
-
-<blockquote>
-<p>因为近期俄乌冲突，毛熊被制裁，于是放开了对本国最大的dao版网站rutracker的限制。上面各种po解软件。试了一下很多专业软件都能找到绿色版（这里不好提名字，你能想到的一般都有资源，只是可能版本号是较早的）</p>
-</blockquote>
-<h2 id="给chrome或edge浏览器安装rutracker访问插件"><a href="#给chrome或edge浏览器安装rutracker访问插件" class="headerlink" title="给chrome或edge浏览器安装rutracker访问插件"></a>给chrome或edge浏览器安装rutracker访问插件</h2><p><a href="rutracker.zip"><font color="#DC143C">下载链接</font></a>在这<br>怎么给浏览器安装插件自行百度，很容易。</p>
-<h2 id="借助必应搜索引擎搜索rutracker站内资源"><a href="#借助必应搜索引擎搜索rutracker站内资源" class="headerlink" title="借助必应搜索引擎搜索rutracker站内资源"></a>借助必应搜索引擎搜索rutracker站内资源</h2><blockquote>
-<p>rutracker想要搜索站内资源必须注册登录，不知什么原因rutracker现在不能注册新用户，无奈只能借助必应搜索引擎了。<br>搜索格式如下:</p>
-</blockquote>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">搜索资源名 site:http://rutracker.org</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>注意:搜索资源名与site之间有空格<br>搜索到的资源链接多数以bt种子的形式提供，迅雷下载即可。</p>
-</blockquote>
-<p><img src="/2022/03/13/rutracker/fig1.png#pic_center"></p>
-]]></content>
-      <categories>
-        <category>计算机相关</category>
-      </categories>
-      <tags>
-        <tag>软件下载</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>含非标准残基的多肽对接</title>
-    <url>/2022/03/12/%E5%A4%9A%E8%82%BD%E5%AF%B9%E6%8E%A5/</url>
-    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><script class="meting-secondary-script-marker" src="\assets\js\Meting.min.js"></script><p>对含有磷酸丝氨酸多肽的对接方法</p>
-<span id="more"></span>
-
-<blockquote>
-<p>最近需要对接一个含非标准残基的多肽对接，一开始我以为多肽对接和常规小分子对接一样，可试了一下发现对接的结果是啥么玩意儿啊，完全不是我想要的样子。了解后才发现，常规的小分子对接程序面对多肽这样的大分子量体系准确度完全不能保证。那么能用蛋白蛋白对接程序吗？显然也不能。蛋白蛋白对接适用于两个单体蛋白结构已知的情况，而且这两个单体蛋白的三维结构相对“刚性”（这是其对接原理决定的）。几经寻找才发现多肽对接有其专属的一类程序——peptide docking.<br>找了几个相关程序后发现它们都只能对接天然氨基酸的多肽，而我的多肽恰巧有一个磷酸化修饰的残基。几经辗转终于找到了一个应对方案（ADFR组合flexpepdock）</p>
-</blockquote>
-<h2 id="ADFR对接只含天然残基的多肽"><a href="#ADFR对接只含天然残基的多肽" class="headerlink" title="ADFR对接只含天然残基的多肽"></a>ADFR对接只含天然残基的多肽</h2><p><a href="https://ccsb.scripps.edu/adfr/downloads/"><font color="#0000FF">下载链接</font></a></p>
-<p>我的多肽中含磷酸丝氨酸，这一步姑且将磷酸丝氨酸视作常规丝氨酸。<br>我使用的windows版，安装过程无脑下一步就行了（最后一步选择学术用户，这样可以使用全功能）。安装好后，环境变量也自动设置好了，下文用到的命令，cmd中可直接调用。</p>
-<h3 id="对受体蛋白和多肽质子化"><a href="#对受体蛋白和多肽质子化" class="headerlink" title="对受体蛋白和多肽质子化"></a>对受体蛋白和多肽质子化</h3><figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line">&gt; reduce receptor.pdb &gt; receptor_H.pdb</span><br><span class="line">&gt; reduce peptide.pdb &gt; peptide_H.pdb</span><br></pre></td></tr></table></figure>
-
-<h3 id="转为pdbqt格式"><a href="#转为pdbqt格式" class="headerlink" title="转为pdbqt格式"></a>转为pdbqt格式</h3><figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line">&gt; prepare_receptor -r receptor_H.pdb</span><br><span class="line">&gt; prepare_ligand -l peptide_H.pdb</span><br></pre></td></tr></table></figure>
-
-<h3 id="用图形化界面打开上一步生成的受体pdbqt文件"><a href="#用图形化界面打开上一步生成的受体pdbqt文件" class="headerlink" title="用图形化界面打开上一步生成的受体pdbqt文件"></a>用图形化界面打开上一步生成的受体pdbqt文件</h3><p><img src="/2022/03/12/%E5%A4%9A%E8%82%BD%E5%AF%B9%E6%8E%A5/fig1.png#pic_center"><br><img src="/2022/03/12/%E5%A4%9A%E8%82%BD%E5%AF%B9%E6%8E%A5/fig2.png#pic_center"><br><img src="/2022/03/12/%E5%A4%9A%E8%82%BD%E5%AF%B9%E6%8E%A5/fig3.png#pic_center"></p>
-<blockquote>
-<p>红框中fills一列显示了所有预测的可能的结合位点，勾选你所认为的可能结合位点。</p>
-</blockquote>
-<p><img src="/2022/03/12/%E5%A4%9A%E8%82%BD%E5%AF%B9%E6%8E%A5/fig4.png#pic_center"></p>
-<blockquote>
-<p>依据上述勾选的结合位点设置结合盒子</p>
-</blockquote>
-<p><img src="/2022/03/12/%E5%A4%9A%E8%82%BD%E5%AF%B9%E6%8E%A5/fig5.png#pic_center"></p>
-<blockquote>
-<p>计算并生成trg文件</p>
-</blockquote>
-<p><img src="/2022/03/12/%E5%A4%9A%E8%82%BD%E5%AF%B9%E6%8E%A5/fig6.png#pic_center"></p>
-<h3 id="开始对接"><a href="#开始对接" class="headerlink" title="开始对接"></a>开始对接</h3><figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line">&gt; adcp -t *.trg -s npisdvd -N <span class="number">100</span> -n <span class="number">2500000</span> -o prefixname -ref peptide_H.pdb</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>-t 读取上一步生成的trg文件<br>-s 输入多肽序列，小写代表以loop形式对接，大写代表以螺旋形式对接<br>-N 代表进行独立构象搜索的次数<br>-n 每次构象搜索进行评分次数<br>-o 输出文件的前缀名<br>-ref 输出打分参照对比的初始结构文件</p>
-</blockquote>
-<blockquote>
-<p>对接结束后，选择你觉得最合理的一种对接形式，进行下一步保留磷酸化修饰的对接。<br>将所选的最优构象多肽和受体蛋白同时用pymol打开，手动恢复原有磷酸化修饰的丝氨酸的磷酸化状态，删除氢原子，整体输出为一个pdb文件。<br>对输出的pdb文件用文本编辑器打开，保证受体蛋白处于A链，多肽属于B链。<br>确保磷酸修饰的丝氨酸的磷酸基团原子名称如下所示:<br><img src="/2022/03/12/%E5%A4%9A%E8%82%BD%E5%AF%B9%E6%8E%A5/fig7.png#pic_center"></p>
-</blockquote>
-<h2 id="打开flexpepdock"><a href="#打开flexpepdock" class="headerlink" title="打开flexpepdock"></a>打开flexpepdock</h2><blockquote>
-<p>这是一个在线服务器，是为数不多的支持含有非标准残基（仅限磷酸化的丝氨酸）的多肽对接程序</p>
-</blockquote>
-<p><a href="http://flexpepdock.furmanlab.cs.huji.ac.il/index.php"><font color="#0000FF">网页地址</font></a></p>
-<p><img src="/2022/03/12/%E5%A4%9A%E8%82%BD%E5%AF%B9%E6%8E%A5/fig8.png#pic_center"></p>
-]]></content>
-      <categories>
-        <category>计算机相关</category>
-      </categories>
-      <tags>
-        <tag>多肽对接</tag>
+        <tag>293</tag>
+        <tag>贴壁细胞</tag>
       </tags>
   </entry>
   <entry>
@@ -221,159 +83,6 @@
       <tags>
         <tag>ccp4</tag>
         <tag>解析晶体结构</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>python脚本打包exe</title>
-    <url>/2022/02/13/py2exe/</url>
-    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><script class="meting-secondary-script-marker" src="\assets\js\Meting.min.js"></script><p>python脚本打包，并为打包文件制作安装程序</p>
-<span id="more"></span>
-
-<h2 id="创建打包环境"><a href="#创建打包环境" class="headerlink" title="创建打包环境"></a>创建打包环境</h2><h3 id="安装pipenv"><a href="#安装pipenv" class="headerlink" title="安装pipenv"></a>安装pipenv</h3><figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line">&gt; pip install pipenv</span><br></pre></td></tr></table></figure>
-
-<h3 id="使用pipenv"><a href="#使用pipenv" class="headerlink" title="使用pipenv"></a>使用pipenv</h3><p>创建一个新文件夹env</p>
-<figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line">&gt; <span class="built_in">cd</span> env</span><br><span class="line">&gt; pipenv install --python <span class="number">3</span>.<span class="number">8</span>    #根据需要更改版本号</span><br><span class="line">&gt; pipenv install pyinstaller     #安装依赖的所有包,pyinstaller必装</span><br><span class="line">......</span><br></pre></td></tr></table></figure>
-
-<h2 id="打包"><a href="#打包" class="headerlink" title="打包"></a>打包</h2><figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line">&gt; pyinstaller --distpath Release/ -w -i fig.ico --clean test.py</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://blog.csdn.net/frostime/article/details/90523062">参考文章</a></p>
-<h2 id="为程序包创建安装程序"><a href="#为程序包创建安装程序" class="headerlink" title="为程序包创建安装程序"></a>为程序包创建安装程序</h2><p>上一步打包好的程序是一个文件夹，这一步是给这个文件夹创建一个安装程序（类似于常规软件安装界面），方便给他人使用</p>
-<h3 id="安装Setup-factory"><a href="#安装Setup-factory" class="headerlink" title="安装Setup factory"></a>安装Setup factory</h3><p><a href="https://pan.baidu.com/s/1YWOwNIkxrTPlWWes6PH4BA">链接</a> 关注文末公众号，后台回复’setup’获取提取码。</p>
-<h3 id="使用Setup-factory"><a href="#使用Setup-factory" class="headerlink" title="使用Setup factory"></a>使用Setup factory</h3><p><img src="/2022/02/13/py2exe/fig1.png#pic_center"></p>
-<p>按照下图输入必要信息</p>
-<p><img src="/2022/02/13/py2exe/fig2.png#pic_center"></p>
-<p>建议制作32位的，这样同时兼容32位和64位系统<br><img src="/2022/02/13/py2exe/fig3.png#pic_center"></p>
-<p>路径选择刚才打包的程序文件夹<br><img src="/2022/02/13/py2exe/fig4.png#pic_center"></p>
-<p>以下步骤按照图片提示信息操作，没有提示信息的默认下一步<br><img src="/2022/02/13/py2exe/fig5.png#pic_center"><br><img src="/2022/02/13/py2exe/fig6.png#pic_center"><br><img src="/2022/02/13/py2exe/fig7.png#pic_center"><br><img src="/2022/02/13/py2exe/fig8.png#pic_center"><br><img src="/2022/02/13/py2exe/fig9.png#pic_center"><br><img src="/2022/02/13/py2exe/fig10.png#pic_center"><br><img src="/2022/02/13/py2exe/fig11.png#pic_center"><br><img src="/2022/02/13/py2exe/fig12.png#pic_center"><br><img src="/2022/02/13/py2exe/fig13.png#pic_center"><br><img src="/2022/02/13/py2exe/fig14.png#pic_center"></p>
-]]></content>
-      <categories>
-        <category>计算机相关</category>
-      </categories>
-      <tags>
-        <tag>python</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>three_body有声书</title>
-    <url>/2022/01/26/%E4%B8%89%E4%BD%93%E6%9C%89%E5%A3%B0%E4%B9%A6/</url>
-    <content><![CDATA[<div class="hbe hbe-container" id="hexo-blog-encrypt" data-wpm="抱歉, 这个密码看着不太对, 请再试试." data-whm="抱歉, 这个文章不能被校验, 不过您还是能看看解密后的内容.">
-  <script id="hbeData" type="hbeData" data-hmacdigest="603060576c794d62dbb32492dd4da84f97c005bda64240dbd97e238f6dfe36e3">f0840aa5ec3ed0672a5a21f0f54f68ad80c5b1ccc95f9bcf6ac6a8e493610ea91b24004b30b4c673e8bbfac7dc2d1245348e69044db3aa0d4824f8d655ab8e2ffd94156206cfae453e3ccffbcdd4ee84782112e5edf372e1311990ee215ae3599ccd0d60fd0ef22cf472bf53cb65abcfd8165c6d2737b1de34c6af19de87946eb49150ba40f59d2fa928eaf2e38601a239bbe602ce6bb521c1afb86d34797700e292ec5f8d0b1b4d18144bb4f4d423f0e601ed89fe24768bef81774ae2d798f0dae21bff942c7e88f8a50daa7b7aeab37ef28ad98fa0c28d16a905a92a3ab58006a30e0396a5e4696f34860acba19c734022cd8df8089d389a449cf807fd1394bca11029c3e43bc11de0c119ab990dafabd75f28d4084ed4067010f0a0d14f555dac3a6a2ca85078acaa6df30a318ad36b58d8d014371aeb6d08c8cc6f925bb2635df22e372a84221f34679bf33aeaab52e3ee94c72795ae59a41138c934209953279f6cddaef6ef430e9e6d0228b76177cae2bdb7574e2255d80582a19b7b6f61276d256a32bef2a1a48f45683248314d85ec7bc06fc99da50a18851632a4af72da323492bbcd8b9b24027040abcff17e4760d59ff21b0003bd029e91dbcd5231a143c3efa445956997888d8c27db1da99c28fcda38b8d1c12fca39e51216cb666c02d29ed7a1eb61e70f98d5ed107281ee0f06590a3c830edc472be35b845aced0e19b19511469c1304776c37345675dcbe3368ffa8aabe414b74251d09d77ed278c5a2a2b4b76b2945e1ee19dcdd673a8341fb21d8eff9fa9647a75036fe156b9bca21b1d03331cfb2c0b19abad9f7912e21b05637373f2eb9b3160d8d677508b94c40f99478003b86255c31a2bcafb2d3763a9d6e0b7c9d549207971789b339f9aaa1dce8ac2a045f2994288be1c55cdc4220032660b9911a57c5be8217d2d6ad86b0d01ff3df203ed791332e5bf3365f5ddf6ddf37cbe72ee9fb6c2cc29a9ba0d10cfa61dce2ee68bbbf9e0d0f8b03fbba47ccfa11b34e315afd1f03b5c46ab2fba21cb0f9ec11cfb252040d4ceda0e2caa8bd2adc6d2ea93872549c425eee620cd7d7dd96ec001e0c68cc57c664e92214917ad50ef72be9da074592b5ebc5fd9e98a21e81ad1c98284109247d1eb49abe612702f0b657c921c1cba277e877111fab75640f12ca730854035647cba0141e2968d7ccfb492a3f8dde182590d671f6579e7b1ffd2bce10a74faffd404c04c8795f69e5d13f9449e8d3ee03d25b526d15822be7ad2e46fb571962fc6206a733776a8daab01eff3fe4e348ed588553a270618f701fd57515a315fa637fbd597af0879c507112fb5f787e553e034f1bc17367185fa400b1eaf4024cc458f216bd4bd9978bf2c488382727c758129f2d4b159c2007fd00efc8aae7245bcc1dcfb7c592bba0ecac2d4105309d1b49beb8af2cb1650782646643e6c28ce58b1f649545825d98eb95be894d094a7d7636ac4db27e3795f50dff98c5e9caf29b1bf62b61a66a507b5b35c5dae3afd1119c0da22fa878e1a05e48164cff0bf6197ef855ba3428aef7459110ae0d5f06ec2abbf18e330099549da6396ec5a0acd0e268da820d3eefc4123152723e9877f6490e5a074e5f3321fc41ec39b88c5ed06cf7360d92f9524d168118059648e7281e543591b5bf4fa33382618538a350d35d8948ea59747fcfe7971c87650d53cff1c05f6916e97f7dd488f63c937acad8080bdb723fb2794f9c9c710072ea7e1e642672e73f71fb0b798ae5b5a22bdfcd96a708e0b47517e7a6ab1afbc1609a3ff0d3f116f0a2228ac3643823e20c190bd6f63fbfa3eb09b2e1d8292e46dfb901797f1be2b7fea8bf73aca38219d52239b7ed5105ee78cf1d6aac1a7e811020778f31852f5f5232f5c6b3be172d83187d3831eab714d03fcb9e8b209c8d9ab1f89218ed749214d93bdeb289ae23fc1983904e2ccda6adf6a7164346e8960d1697687f5e5988797765854a82ff6ee223c5e708c150cd930cc2ed37024e1b83c36cd2585479b6743ca9213a546840dbda3bd6c00fd963e39776bc2904c27b99a549e847eef20e5f29039e25a93d66ad67e7e69c6af3dcbaa09bf9ec5106c42976fc6d799fd0c1f37984b463c858b54afe02561b23194d66e256025f3cf1e102f2460e2704571602f9b1b27e79e8a86e50bcbad96beeda76422340ec0458f50b7218b8ca0ddd01971a8719c94cec83d629d6e8c3ea6d2b4847ce63f26f3a51960deed957d2b2481ccf2cfffaaa5c2b826908a8446531aa154b825b39316309c7bd3f0cdd9debb6003c8ff3965e0154fc7d8bd277e3d6e8794a65841a1393ba8c6f56d7d0cbbc92800457dd35f44553b943ca22a91fbc5aad9ef8cfba9a98a7c220a3eff1d054fc12d34c1de56c1aed23bec78ef90931e93ce2cae79059caadbf54cda24cf7544cd8eed737b331e4cfdcb5316382a47d034cf68be3ed65448425c6b869fddd0d44376507082124f328aecff67364dce0923d88a593de860b03c0bf46b4292c1c08465afcf216a9b55ad1814117b8a08914c7456e7d49bdf3fc730b883904003d02b9ab0457667a433b80a8f130b5662c6ec3425d88a4f2b8ca46b6f47f9fdc0f2d7d4e48ba91e8c7434c667aaf8b6b6450cde98f2461aa06f432480efeb8ddae8166fb8b71925d3709c0e056b499ed663455a4b341f8c77487677f13f314e5a5eb037abbdc0038a0d4195a430b026c52185d417ae6ff4f2ab19d08559d69aa8f4bfe8ec657881356fbe990f8e5928945d3344d75896f5eea0e8fcdd4de194531484bf67305a5ed9a864bc9984a2e013869d65b9f4708e8377433f1506683c87aacebba64425cf08ba37d6a8d4fc51003ee95ef15e16674018cb6e3cc54c1673e67990dac26cf77538f2ec6341eedc76ff109f926e31c8e1844844f63820fbe84208851392d8b182c2d4abbf526cf2dc03b441a2be4810c82dc10f921825a8df9801b7fc90a6af7df8229374be83d46dcaef76aab49f3fdd298f6daec65ec5110cb2e7142da890c6806a1ea4e13e6058035f5d729607e111509b47865814ec71e2593f704e19aaeda31a6eed2ab3dc7052010067f57177e642a2841a35a12480419ee97614837d6ee9ec0c69726aa9faa84d6f5b3a512cd645f8d4ec34fb3d03c8f445f3467017d09fd698b6c0499f991142f97965cffcf74161b989d03c163ff290fb5c4947aec60478b91e9c188cd5bfc01e3b81b7e5001753ce35e319a8824460638762a411f6a3492955c4ee52ae01eae845948d333f637e137cf3836f9bbccd07c6bb8cc80d7e99e89ab39e50f9ae1930358da9d171ccdc4e2a2d8400238fdaf3222e36a35adc9248ebffb9e1a7a3d72ef69f511db983c7423c0f19c154481e0153c7ea72ed644e6ff06de56a220b86e8f36697c2b680b8a0be643fdfcf3004572a1943443ecb07fb01056e2d45080dc49017e80ada0e948c9826e7f304844a0027ba50497ed513531d41639d78e6b075ef55bf73778f0b9b22e26d7f767d7911e2303322a687a2c365ce5c7e8c3b65a8550202399e4fc50221eb0481151d46bfd1cd0fc2145987b10320b5788287a82e60165a0364a071bfc482d31b4bc1abf5dc6f4ac3ee1408cd6cef068eb33655cbf70727a1211efa3aec44c401f07de65ce8dd8a1ff13d48cf146239389260930d5a0f3e8da5bdef5c2a03f2e71d48d6c1979d9e12a183139c56c87284ea7a4962831fe0a5525d4c2e58f9edc909c93ca0abcfeef2c1404326eff4629d6787589b3ae490bf1ef5f7102e18c7e251c663cdd573d19772f402bf1d520ada898d50fcbe2c64456b51ed054b25caa3ea237f81496d3b56098402160ce36ac96a1662191da373d336e671dee190e75277f1319f2fc24aa3dd0034d3f9da69a16ffd4d9d4b7e947ff1281d644ccd9e6009612a761f195c707b81a98e0fc5972ba989a3fb495a586c096322b249d85ce9d5538020ef0812e24b0fd20ee0c4755662b8072c5a5f72d11c25cec8f401210d6423644c3091367ad653bab227f5cb201e9b6cfe71f3f0396d13fb637195613297321c5698454bf9d60ced99893232adca4bbbcbdeb13b68c488b0fb76397792a0ad961948ba0300151a3c420bf4a4bc5e26e4807161799afb997acd1d33388ebe5c270855ccaf6e719694431970a5424cab9308c649cc8c413297e02e9b86fee0891fa21daf44a4f513e58e0b0412ce13467b78d110b0a4521acbdb80c0d5038b821b28e7c7de3242f40b3dba8f53c9ced5933dafe4a010f4bbba81e760e37cdd1677bed90e7d2f8716fda7474e0deb1f29d21b898e814c2cace151160b7746621abe2933aae8002913ecbfd5da127f8998f272ceba475b1747421cc7d8391cccbfc0d48096fa69e36a11f6236d39a21a8ae2b1b2d76aff16750cd3bb72cb84b33e2569241c9a0d760b5876927b54281ae5db292e933bd78b73c473cbf6c7871bb0512b52aafec8d38d1305164edb434afeb35e048debb4708e25249703697c9fdea5681c6cb85e96379bd7f6af95bb4707e19dc078632e8254a4eeadb4628c2555dce48897abb092b03cd7faef80045653708fe1b6d5e26229c6e14cf70dddd278eff282c742c46fa3aa3d6ff98aafcbaec4705905e1e2c48a99110baa1b17e8806d0fa3e5d471ddd99ea1bb759502af71fd265707f569daf5d884dfb3cfa3ba6cd782e89901cb15d482a22935d2e56ff19728d59b1124053f3c30453a3259f4a0133896c656e355b02f098721b94dd9d028be54590d22e43ce556e3100b6875ca6699933718a5c48099f700aa0d7ab3ab2ae58b12c4cefd99b005365d79413915505103baff7fdcde64feb9fa93518f786e5494f31450d5db4f89e08c7ad1cd2c366f00b082fc49ce5a631aecaa945d626aba8caaa140bc32ac398786ebe64c34878e275465839de29952c189077aeb13c67cb452c4963b321c9e7d2f4cc47d45cfd3b72d727e8e198cce05393cf73dace3648124ada3738507494687edf51055a48d0bb54a68c9aa71750b24ef2ad5eeac17279f5a2321d31002ca1fcdd180c770ae406819979f910458d06cb3b0608227aa100162bca7b242bc33b32b57d9aede980210bf6cd34d199e7c05c0e7698d18bb36a2fb5ac12ffab409d1e05837b22703ec9db7ba4f55cf8090467641de076b74f02fec763e8f55f4822855ae7604198b863b59c24819b084fd44681dc79f5a213182c5310ea8360f65cf163a3015de0744c60d43f4d7429d1e89d196286ab52e8b8d2db974c12ebbaac6904cf1fef5b5913ff81fb32b9d89c386f6d77af9510fbf343b2a749c8e3242009ae701c07b19ce5dfade63ddfe71036ba679417c56078964df7381077b29d84dbf48589b8f5cb1dd53698032e5bb4c23af1ab3e877ee5429686e89dd82d13d526389becd6a066dc6f1e68687a8369f8d28cd365fa8d282f34479fd60beb0347ff1c0148b352fa64f31adc4865ebbdc5ee345993b6d76f805bea85c7dd90a61b25fd729e7ba3905984dddc830cf2ed23ab8c9149f07531794d1e4f323209038820d7923c86d215e6232808f9ceabd30014248f6483a0f00ee3694856d6af8afa376bc7df1f74836b4bf7a877082fcbf874b178cc0ddd255cc701c61087090918cee2ecd8a3d028e5c26fea82fcf96e7ff36dcdba4b7527e661302d9f7aacfa24b3e4788835b6f1c3587a76a95bc93dec41eb9f4163d5a2e7928a64c8b3adc00bc455ddb21a83eaa64eee47ee8e43da615ea38df9819ee16f9671e6dfa3102732edd36b1ed1ef12d0dd3553d9a6bfda7c7e098865097d706825ab6c6f1d9b25778bbd59778e8ede87c5566500fa11cd614e773323cfca14d3ed3996dddffdbffd0a621a7b82eda2da1b95974f2c6a6f133bb046c22520be7d975037f352b9f1ee9f0ee8998490ee6e1bcd21c317a26e55939cbfe969571b2212069dea5f0841ee22f744638fd22af333d7963a6222755128b1dedd7cc1fde2473fdd8faa95c315502c4681fc484a04ab3f680ab6f90e2e5e85d067a1fed2fe3a3b9b9996c66eda4e6b65e922988b4fd37a17c8518bbb7f026affa30e52f200fa4bf76b711885c25f5494ae78ea062331ae131eec1c55b94f73e27f1d22418116991c6cbe2878890363a47c164e56c8bb1cb86538781e52e3a62132306d9aded37873f9b2e23ed25dc7e0e04ff03620fca4dab97504e44be0472720d08b49248be0d050456820682d123934924106ee774c5e6a3582276cb73a21c5ea533da6d229cf9812db3538a07c875093c1bb42875d8987e2fff9e985635544c21ee57201fdf19c896671707eacecb846d9ad9232127af8389efcb66bd0c897abb7ac2d412f2c542b489f343f4ee22f1218e8d515fd3d21632103ac2504c6eb375c0cf721307ae57592a7ab762f35771d6d76433fd942b19fa174a9b5c7e32ef88f554327800a342577e5cbe278015bbee253ad7a05a2ff77af78a63c1b4dd55b3827a82f2ecdc3df22cb4b37ef55fc92bb2b2f7c7d25cbdead50d8f4b1092659fb8759965c8cc0deb8f3eb0a258a8984b4ecacec3ebfceebbed046e80a1b98db7ef1e1016e1be1d7daf1098929d96e3d1f3d192f87b51159b1d1e8b42a556e27da5ef3b8e1aff27682ed7b36ff875e50d9b2080334aab543778fd9862e4fd6de24fd8a774ff159a73f8ae5965e3e34b207cc515176bd8c46382fcd8fe45b763dce18f188bf7a5e98ff4d94803baca486a9c2976e1b73e38f8b5b8cca1fbabed44cf0613af3cce63402577dfbee41fa8bf54989fbba530d6c55031037ee1dbc808ba397b26c0a4613fe66d354d14c01dd25c1ad43ae808e7fd6bdb399e649d8fcf24affc10874db6ecdc404808ef74bc220fd45dc79f820e8a1719057d9cf773e1eae2835a9958cf90ba7840bf2c9061cede8b0eeab2f1a166c396e6cd23ef586302dfa09e47710c87e914c665479bf004c3907df87d55a78c04a90c0c5f8a38f42caeacfd4290dec3037157f03e73af1d13f27b0ec8d5aa7d6aaa386dbb98ad69f71d6c5a33f9e0d992ecb9534f205d1a7a7abea3fbfa5128548f4cde64cbf42838b5fe6c390b0c4f7649ea16071dd93773a8e5b3930706ef06139f33cf82d303fa9ccbd189dd6b102b1ecd4967ae1bc4775e15fd670dd6dbe60a1a1c9f16b07b73c0545bfb9aa2499d77b51043a243e9487438592316ba3eb7bd29d729f69544484739753802125738d36626c2e1db13fe41e79355ebd1d45c02a3a32337ab072a45f80cc2fc10d6ee38062553104aff3e5aaccf4fd4acad502e970754986232a2daba477a9a2e0d0d7fcc0cbb277468d7e21c10b65ce5edd1cfacb0b1d50587429ae1c69a2a4cbb0ec8b9cd498925af1c45bab3a0195564695b845f4d707ba976da1244682de50373d3eaa752b754c7a4f4764b0515e0a26be319c26fadc297601af5754311cbd7aa1824ced6f092798f5f45e665a7dbc68bc86239caff2e331e0ffa33a5c2d75f4769582f453ff51783a0f840479ee042451373b56a8d8054404cf1de6ac7f8d12d9cd589a73dde06e5f7416b4064ddc69dd8ea004ca3b470184bd10761653d8066979c92a0cf8c52ce3481d5e49e3aaec9ecf0401c5e315f8f97ded5ef5432fa9fdbb798223842af69f1ba336ed705f448369e009601ff78237b996d45dbfee9c8e722bf16faf4d189a9edc8a8913c90055260bcbddf3dd4adce180c8ed05a7b6f5935d1855c617a94ffe11852fd6bed1fe956e793299110473a2bc943dfce63831e557890e0fe633ad87fe9dc9336fb714eafc6e64150cbe424193c8a004e0a55fe1f65db0c962c5bd347533a9570b4d92b77ffa654e43ddd3744bf62aacaca383b72a1152b0239608bdc7f39e6022d359ad9b86528771f4006789a8832120205a6cbb198353d30109ee5951691d74c4dbc052f226f79ea81c6cfe24f7143b0b124fa295e906e206164c75b52bbc5c9363954f040404d5a2788897b286e8fd4b3e4b4995c8386231a08bcfc65f300f97dfbccc40a8023f075d456859a3de5fcdf93e6e9c100fcb87fd5d28adc88acdb8be039656736dab3c9c3fa0f70f8ef3636c9f9ffe688ea0ca866a16a6bf265cdaf1151fa0467135cfb74ec12fdff86b4682a43a846b8e0de4164978068267dce869cf274d20876fd76431a4ea1c03b04f7b678a6af68893f853a59a1a6d06d00085bb2100e7cd446bbd1510564a06c36a700deed2998a953d2091f91a303a7eb8dac2850fdec4bc0e9dfb9265764df89341691f11bd905cd4fb1ba2d51f10305ed60893c1252fb25d5090ab1d915f64b76cecfb02f3c3dee490a14e44043f63f38fbc4bec32b085490e13a3d7791b70213b1d31e551d11b56f65d091970ea26b10bf66d1b807da14a029e605d1f3d8844abca029c520b961e3d2f44cfa3cbbd0c6665d09034a36e3aa16cab516c6bd3ee629dd1b3d2089355d2e5af03391b493b2ff1f3e338e106fd228940158fe5b0dacdd2e9e3ca205b7e4bada2fd5f9fbe1c9bdf3e0ca479ca30b3d5d28656c4072e4e04efe3642b292a6541a478b3b299acdccb2a1854b7cc76fa9aa3421657770f8a33c2be796d0253b8ae8217803ed16274d891c6c0a959445c7805e3772729c0775c6aa8509913307f765d153013a206c59bf7e365fbb51e779c199be953519eb2b2e3edd87f1266829d36c923a888d0953293133140d8edcd3c72a5ee4a859c30cbeb1506f4866408d7a0a66bc9f0d4bb0a2ede9523f559e641cb8ddceeab773e78e8a909ddf53881665ec1163cdf07caf6306e48f1cd4ceb3bd6e559b2f3d0a68bea9286a1c8971dd01e0103fcf77dd00cc138a12bbfa92816e48687471c08d84f3090e2459ffccdb6c4e6ab5708bdb001ed06823565ff6811834326c215d10498efca1233a890f57bcf5c0565cb7a7cb523c3963eb87a7932e03db54b4641d7d8c2a15fe53f969547d1a0d3120c8f7e0698de726e613839a1a4ea325ad949fb73a67ca50cce4b66e89ccbad25b9526d26e23dff7227e81fd3d148eba02dc616628a2bf5f02dd3b1f9d1b973944f203d540d706034845b5f0d29477936d653c7797f01c3b208f4a9b9f53687fac8934cd0714469c1bc7892d6177bfcb4e4a38a98c89999ca76bb32ed3898d16e0d8ee72cb17415cf2db741ee0398e1d307d38f517ccf4bb55c4a2beed7a28590ab85ebce3d39c6de22d75bd725843e00e6bb9f46679db3fb794fe1cd906251be9ed47767e674f3382031ae7d6b5783e7f12320b4d3c5c170d0006b956560acca872f3f665991efdc87243aad5922b36ba74595ba6ff5ac083b70bd81a2233d1e63c03d808219c5d4ae5257b74c34dd3c4cf9d2ece7acf0625de070251846ce1f5c8175e95e49a0f6222e885039283aade87a9ab25cc3ecf11aae21e7327396ebc9b2eb7059241672170e0da69b97448f5bffe166ffa1ca90f0a3ba199db970c9995b5c7f998513f2d84ba7d873fc7441ec68bc7e5b9e41e3017a56d32226539b6c66215a87d6e2d6a15b1af8302f20d5d3fe3192011ae72619e2d1a5b8c2b710d1b9146bc2647fe176df3136ad2b42d56063b8cc92287fda50dc651f04e6571597c7a89574ef8ad59bc4a6cff75cd7f0985b37a9ae11e9f3231a70b9436cb6fd6b9aefde3cdbc020ba9d31507a7c0284fce9bfc1d0a1eaf94724be5913707e4b7fea1f783115dba6f54d9588d6b802d710184b8bbbc496526c9422b2c37925272ce5e4c1b34e57a7b055c61ab08499cc442fa4eb93644e2b9c75c6b1cfd6cc9637c0d35424813dec3c3bec6c1409eb2a30040c81883972960576b3cc796434a7b5970e0e4b8de661edc10ade0f4f640f5a1e557ec10cede13e9f4da2bc13c6785ba66e38082beb32c44bfc7ff06cb8f12af731511a83755867b1e833f476f12378e8af482770a5f8088c915c500fa70d0a68c83699236734c41c9a680da9299d5549f0676b5e0823911f2de2414c84865037825f1bbcb8dc1fede5f21f979fc2c6324b292955a0bddd7f667da7706672e91a1357ba69d24648326b91c5608bf221431b7bfe2cb4d8c3b13857aeb25397ab1730ccff96df4a36dee49302c4b1056f668132258d105c6a46a06b26c9c09e2395d2e283d5077b78055ecfb5d1f125b136c365bbacadde345d22a88852981c0223dab37cdc3f29c22168725c47e90ca2800aef6af11808747ff0c351a46127a02c70609dc24c4e346334504db87c1782d4a2a4bc2e6e2796c152bb730441ba7c56d405e58f219bf4481816e46333e8cf4c7f23c17797e182ab71cb82946e0e9dac12f57dca2362e580995d69f8f71f5002476c064c14d3382e7cf7dc3feb27637e460e963294a98d40fafac856dda429ee312ed8940d9f724cbf365868d48c48c30373f963c72eeece8bf150f35b9ccf89a0358e7d2cb84fbd48f6a5cfdb1f4b9c2406933ff0229ac51bdddacc1788cbc3c320cec12683e7c6d215c603bcbf2994066d1179537149bdc22f80a8665ea0e5cc26abf1b83af662afc6b762cf547346034399e68633dc59bf30d05f1855d4f0f45bab7bb9cc6028733341713bfcda4e0bde6511b2d46791d193701342a9fd2f2084e6525980fef980c2f827c7d33281d83c120776cd512da45e0a2b809c2a570dbe4ac822e700c4096a5649190845ad26d32e19c0712807be6f3e263ef540b0cf2e9eb67838852cc35529b39abb75223da58f9390b47683bbd8b369a08fdf8dea962a4c8e41a5a5fbd71b66d520c8581c5a7de6f02d61ddfccf76f93b2d97ce5095f0a445f82e7eabb592585c20a649c8521f121b7c45a35a654d9c21679e8fa70a71c19dac9d29cd8a0371486e87f60a0c55a310b2e79ba67d62fb79e765e0e9748fbb078857bed60dece3f4922625899884c92a3849f8be50685203ded4b8390d2671be8d7da10959995cfd1dc9f3fbc36bbf770da66e5dbf6fd7259330a0cb711410c9af3d67766b9cc5d1b0df366ed6a6393c78be861c7099833e8a3ba853fcbcb3e5c1f530d836e0a0c8480e073d3c831e51881133fc3638eedc6242114c7edbe9f40ab66e0da63a09d40e155bf408228d33a9b4a537c80be3af6001df53fd17070b8650487e04bbeb7f1dc51021e468acf252162b97808cbc0eef6469a747639bafae88e8369b3e9285c8402daf29710edbb4bd1d3f674ef55d0a4c20ae38b39abf8b4a355d79e06a8c78659aaf70203f6c68093fb875a357402e8c3fa1d6f04b282f3f6ae669bcc075392ef9f2bed4107b65e9d1f37c2e58d83a9f9c096e3fa45e1f3ea147d15de127844bc3fa17c9d6ebcba5d7abb5a19106d85b54f1c26a1a90fea13332ee0a8f8c25115692e6b1edd5a5cede2278d6a44a27a7e8c1ae069d057d23e752c228d43d12bb8f8f4aaf6c5011bbadf4a5115a00410f2fc6a06f9edb6383bc9074536f44ed7c698c57f11a39a062a4aba4011ff6ac0b5da87ebc0204ef55c413797f8af54ecc0550d1105177ae039841cdebf6f9df0ba41a19b0f1c2760c6255e3092159b62e8260122f87ed610545af9e6ec67dfd315de6503e371c65427773bee7f3eb35217049f21cc69a3ee588685598e97e1722cbf7d65ab225478946a8c76f01ecc59747e2fa35973cea847a9a9636dd4889769ea1871d199ac20c111c54ea14f6fea65bc93d26dcd3bb42e84a0029fa602d53331d56cfcec149617d7f7d8f846bc161909d453ce22c621654046fb86a74b489df3e13e8bff5e1c91c20d155c1f95285f72879a82d351243fd8d6a78de7fbaa2c030e5344c45d62c524fb217146bff0012d120fe0c81014aca1efbac25f60f4b3c5cece8c7926f6ebf07fff8a3211a8d4cc0ca7597c34a56668bfe7204de0c9b867cfe8943d8f249b55dff725c5a602d743586bdacf33f436a82795f6dd43ac477799e6d9747bb60960262d2f7b7e8cbdc1a68d252bc27438eb21d397d656518387d1b41be684b3ea926fe812cf483745c0e74d15f0be30a3656694f6a22f882bebe86302b3e6851a9bcca99a242eb81cfefb98e72c3563d02fb3118ef5f2673ccfed4a59e3f240c5568266363aa359cd6b341adf5e881eafb0471f28c6938faab85f283d1d313030d1df5a1b8cdcee57e615930ed508fbf04f259dc2457e7c0c61e5c4ac1803798773a48021c6892174c3b6d75181fd7c047cf980cf71cac8a67ea636a0f256a27ee3e1fb3f4120577c76205841792e5117b04117529a35e092df9b5dcaef0ed2ea32668270ba27347f8ae276e93e68d0712d3651478188785c29df8d06fd409f7d3bfbbfe42da6fe6b6db3d7889c155b02c5286e208c2d48e9c4a8c37f6065535e72cce82516234b1fabde4e1c84275af688a89f24b6da969107ca7df7bed2f1e1355c147f3a69381e6d9171eaaefec8f0813adaab834c0edc47908adfc5fd12743398c75f7a30e12d970d26c275476e68a2c6420faf5814f493cc2447ac8358aa84de2ff7816f6d9c6b470fe19b2215f755eb2c2725eff729c44f6cd3f261feb6ab6067eb767424975b1ea6d0e9509be3304ea89529de01623f833f9c25e0f3d3ea86e7452a9ee5c980013dedc2129265e4884c673545d8d5c4c020e10b5f5ddf73f9214602dcd6bc1e39d3cb5b83958360ee02edfe327b92190d13f2a224d90ba8b4aeb8dedfcec3e41a8d0e8eb063fc2e4fbdeb4fad22657757cded09037cb6042ae6ef34deae166080b5ae842b82fa8d93216942007d55bd33aabc5f299b113a20a319e57689308d78703a5cd417f2e1a37e3585b349a66cb511f05caa83011c52e7331b32efef0164c7e64f74f487c2258f3fbd4a36a01977ea34b271d8fa7e845dfa179e5cf28cc0e56202f9cbd715b0887348a906ce48c0ba0912cf3d0b7220e869faf07082bd056fe564920c3f736f14f9070357bcd19b822ea0bcb498b1cc5500d0420f73230d8f43456b046132509adbdbd15b71ab7007521969bdceedb8d094c8b5971202fc2add706e9b686c31bd1c0efcd076d96a75b9c87443b9f2c06c31726294840d65d2e1d449dc6679e14ec0b8e125bd74a73ab1d2f8c3043e16095ebeb04c6a08795a9a501c9056a38c4b5b631598b4f739215d7761072eda045aaebcca25edc312fd6e2a3d2556826b8b2d57c34738bc50a0fb008dd01cbabb4540c42f4d506843d8e6a4d7b825ad24c18c568054587c4e861fef440b12c0e5869e47215967bfef0ad83d469df9c047767b1ca566b5814c6e2df2623046f36c738235bf353deb2e38b489507b830a41e8f0aade64eeab7a318b2ad473d1c030fde7022239f9b2688a14b44c948889c36dd274761c22b19fb5cc5c569cce5993057e62660878f7734d1f1102ef03cab90541d20e9948c4137808592522bd2841f78d94f4560e6fa9a6a30aa664095824e58c27b9d9162ff63eaf6e0ef04d3e1f0a73a2de402908a0b3ac6088ed81caf8d1d082a0786ba655e2b6ccc9dddf0a8cee7f4f9d9d9d11099832b6f12b646c0b5b50595ff23130db6a494705736e92b9d18368372b1af7df</script>
-  <div class="hbe hbe-content">
-    <div class="hbe hbe-input hbe-input-default">
-      <input class="hbe hbe-input-field hbe-input-field-default" type="password" id="hbePass">
-      <label class="hbe hbe-input-label hbe-input-label-default" for="hbePass">
-        <span class="hbe hbe-input-label-content hbe-input-label-content-default">请在这里输入密码，回车确认</span>
-      </label>
-    </div>
-  </div>
-</div>
-<script data-pjax src="/lib/hbe.js"></script><link href="/css/hbe.style.css" rel="stylesheet" type="text/css">]]></content>
-      <categories>
-        <category>有声书</category>
-      </categories>
-      <tags>
-        <tag>three_body</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>文件夹盘符映射</title>
-    <url>/2022/01/21/%E6%96%87%E4%BB%B6%E5%A4%B9%E7%9B%98%E7%AC%A6%E6%98%A0%E5%B0%84/</url>
-    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><script class="meting-secondary-script-marker" src="\assets\js\Meting.min.js"></script><p>对于一些路径较长且常用的文件夹可以将其映射到一个新的盘符，这样打开资源管理器就能直接看到</p>
-<span id="more"></span>
-
-<h2 id="复制要映射的路径"><a href="#复制要映射的路径" class="headerlink" title="复制要映射的路径"></a>复制要映射的路径</h2><p>比如我想要映射wsl所在路径，则拷贝: C:\Users\asus\AppData\Local\Packages\CanonicalGroupLimited.Ubuntu18.04onWindows_79rhkp1fndgsc\LocalState\rootfs</p>
-<h2 id="映射盘符"><a href="#映射盘符" class="headerlink" title="映射盘符"></a>映射盘符</h2><p><img src="/2022/01/21/%E6%96%87%E4%BB%B6%E5%A4%B9%E7%9B%98%E7%AC%A6%E6%98%A0%E5%B0%84/figure1.png#pic_center"></p>
-<p>红框内输入要映射的文件夹路径<br>对于wsl也可以简化为\wsl$\Ubuntu-18.04</p>
-<p><img src="/2022/01/21/%E6%96%87%E4%BB%B6%E5%A4%B9%E7%9B%98%E7%AC%A6%E6%98%A0%E5%B0%84/figure2.png#pic_center"></p>
-<h2 id="效果展示"><a href="#效果展示" class="headerlink" title="效果展示"></a>效果展示</h2><p><img src="/2022/01/21/%E6%96%87%E4%BB%B6%E5%A4%B9%E7%9B%98%E7%AC%A6%E6%98%A0%E5%B0%84/figure3.png#pic_center"></p>
-]]></content>
-      <categories>
-        <category>计算机相关</category>
-      </categories>
-      <tags>
-        <tag>盘符映射</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>右键管理(右键获取当前路径下wsl对应路径)</title>
-    <url>/2022/01/21/%E5%8F%B3%E9%94%AE%E7%AE%A1%E7%90%86/</url>
-    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><script class="meting-secondary-script-marker" src="\assets\js\Meting.min.js"></script><p>以获取当前路径在wsl中对应路径为例</p>
-<span id="more"></span>
-
-<h2 id="制作路径转换脚本"><a href="#制作路径转换脚本" class="headerlink" title="制作路径转换脚本"></a>制作路径转换脚本</h2><p>创建一个新的名为path_converter.bat文件，用文本编辑器打开，写入如下内容:</p>
-<blockquote>
-<p>@echo off<br>set windows_path=%1</p>
-<p>set wsl_path=%windows_path:=/%<br>set wsl_path=%wsl_path:c:/=/mnt/c/%<br>set wsl_path=%wsl_path:d:/=/mnt/d/%<br>set wsl_path=%wsl_path:e:/=/mnt/e/%<br>set wsl_path=%wsl_path:f:/=/mnt/f/%<br>::set wsl_path=%wsl_path:”=%<br>::echo %wsl_path%<br>:: echo %wsl_path% | clip<br>rem remove spaces and line breaks<br>echo | set /p=”%wsl_path%” | clip</p>
-</blockquote>
-<h2 id="安装右键管理软件"><a href="#安装右键管理软件" class="headerlink" title="安装右键管理软件"></a>安装右键管理软件</h2><p><a href="RightMenuMgr.zip"><font color="#DC143C">下载地址</font></a></p>
-<p><img src="/2022/01/21/%E5%8F%B3%E9%94%AE%E7%AE%A1%E7%90%86/figure1.png#pic_center"></p>
-<p>右击增添拓展项</p>
-<blockquote>
-<p>菜单名称:复制WSL路径到剪切板<br>执行命令:”D:\path_converter\path_converter.bat” “%1”<br><img src="/2022/01/21/%E5%8F%B3%E9%94%AE%E7%AE%A1%E7%90%86/figure2.png#pic_center"></p>
-</blockquote>
-<p>同样的操作在所有文件中重复一次<br><img src="/2022/01/21/%E5%8F%B3%E9%94%AE%E7%AE%A1%E7%90%86/figure3.png#pic_center"></p>
-<h2 id="效果展示"><a href="#效果展示" class="headerlink" title="效果展示"></a>效果展示</h2><p><img src="/2022/01/21/%E5%8F%B3%E9%94%AE%E7%AE%A1%E7%90%86/figure4.png#pic_center"></p>
-]]></content>
-      <categories>
-        <category>计算机相关</category>
-      </categories>
-      <tags>
-        <tag>右键管理</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Windows Subsystem for Linux(wsl)及带有gui的wsl</title>
-    <url>/2022/01/21/win11_wsl/</url>
-    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><script class="meting-secondary-script-marker" src="\assets\js\Meting.min.js"></script><p>win11起开始支持带有图形化界面的wsl了，配置起来方便多了！</p>
-<span id="more"></span>
-
-<h2 id="升级到win11"><a href="#升级到win11" class="headerlink" title="升级到win11"></a>升级到win11</h2><p>想要接收win11更新推送前提要保证win10已经更新到21H2及以上版本。</p>
-<p>此外win11对硬件有一定要求，安装微软提供的<a href="WindowsPCHealthCheckSetup.msi"><font color="#DC143C">检测工具</font></a>看你的设备够不够资格(双击默认安装)</p>
-<h2 id="命令行安装wsl"><a href="#命令行安装wsl" class="headerlink" title="命令行安装wsl"></a>命令行安装wsl</h2><p>我的微软商店连不上，好在win11可以直接在cmd中安装</p>
-<figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line">&gt; wsl --list --online     #查看有哪些可供安装的wsl发行版</span><br></pre></td></tr></table></figure>
-<p><img src="/2022/01/21/win11_wsl/list.png#pic_center" alt="可供安装的wsl发行版"></p>
-<figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line">&gt; wsl --install -d Ubuntu-<span class="number">18</span>.<span class="number">04</span>     #我选择安装ubuntu</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>如果安装完成后报下面的错误，则安装<a href="wsl_update_x64.msi"><font color="#DC143C">内核升级工具</font></a> (双击默认安装)<br>Installing, this may take a few minutes… WslRegisterDistribution<br>failed with error: 0x800701bc Error: 0x800701bc WSL 2 ???<br><a href="https://aka.ms/wsl2kernel">https://aka.ms/wsl2kernel</a></p>
-<p>Press any key to continue…</p>
-</blockquote>
-<p>关闭已打开的wsl，重新开启报错消失，设置好用户名和密码。</p>
-<h2 id="更新安装wsl-gui"><a href="#更新安装wsl-gui" class="headerlink" title="更新安装wsl-gui"></a>更新安装wsl-gui</h2><p>打开cmd</p>
-<figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line">&gt; wsl --update    </span><br></pre></td></tr></table></figure>
-<p>更新过后重启一次</p>
-<figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line">wsl --shutdown   #完全关闭wsl</span><br></pre></td></tr></table></figure>
-<p>再开启wsl即可打开图形应用（试试装个gedit或者pymol看看）</p>
-<h2 id="更换安装源"><a href="#更换安装源" class="headerlink" title="更换安装源"></a>更换安装源</h2><p>在wsl环境中输入</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ sudo gedit /etc/apt/sources.list</span><br></pre></td></tr></table></figure>
-<p>添加以下内容:</p>
-<blockquote>
-<p>deb <a href="http://mirrors.aliyun.com/ubuntu/">http://mirrors.aliyun.com/ubuntu/</a> bionic main restricted universe multiverse<br>deb-src <a href="http://mirrors.aliyun.com/ubuntu/">http://mirrors.aliyun.com/ubuntu/</a> bionic main restricted universe multiverse</p>
-<p>deb <a href="http://mirrors.aliyun.com/ubuntu/">http://mirrors.aliyun.com/ubuntu/</a> bionic-security main restricted universe multiverse<br>deb-src <a href="http://mirrors.aliyun.com/ubuntu/">http://mirrors.aliyun.com/ubuntu/</a> bionic-security main restricted universe multiverse</p>
-<p>deb <a href="http://mirrors.aliyun.com/ubuntu/">http://mirrors.aliyun.com/ubuntu/</a> bionic-updates main restricted universe multiverse<br>deb-src <a href="http://mirrors.aliyun.com/ubuntu/">http://mirrors.aliyun.com/ubuntu/</a> bionic-updates main restricted universe multiverse</p>
-<p>deb <a href="http://mirrors.aliyun.com/ubuntu/">http://mirrors.aliyun.com/ubuntu/</a> bionic-proposed main restricted universe multiverse<br>deb-src <a href="http://mirrors.aliyun.com/ubuntu/">http://mirrors.aliyun.com/ubuntu/</a> bionic-proposed main restricted universe multiverse</p>
-<p>deb <a href="http://mirrors.aliyun.com/ubuntu/">http://mirrors.aliyun.com/ubuntu/</a> bionic-backports main restricted universe multiverse<br>deb-src <a href="http://mirrors.aliyun.com/ubuntu/">http://mirrors.aliyun.com/ubuntu/</a> bionic-backports main restricted universe multiverse</p>
-<p># 默认注释了源码镜像以提高 apt update 速度，如有需要可自行取消注释<br>deb <a href="https://mirrors.tuna.tsinghua.edu.cn/ubuntu/">https://mirrors.tuna.tsinghua.edu.cn/ubuntu/</a> bionic main restricted universe multiverse<br># deb-src <a href="https://mirrors.tuna.tsinghua.edu.cn/ubuntu/">https://mirrors.tuna.tsinghua.edu.cn/ubuntu/</a> bionic main restricted universe multiverse<br>deb <a href="https://mirrors.tuna.tsinghua.edu.cn/ubuntu/">https://mirrors.tuna.tsinghua.edu.cn/ubuntu/</a> bionic-updates main restricted universe multiverse<br># deb-src <a href="https://mirrors.tuna.tsinghua.edu.cn/ubuntu/">https://mirrors.tuna.tsinghua.edu.cn/ubuntu/</a> bionic-updates main restricted universe multiverse<br>deb <a href="https://mirrors.tuna.tsinghua.edu.cn/ubuntu/">https://mirrors.tuna.tsinghua.edu.cn/ubuntu/</a> bionic-backports main restricted universe multiverse<br># deb-src <a href="https://mirrors.tuna.tsinghua.edu.cn/ubuntu/">https://mirrors.tuna.tsinghua.edu.cn/ubuntu/</a> bionic-backports main restricted universe multiverse<br>deb <a href="https://mirrors.tuna.tsinghua.edu.cn/ubuntu/">https://mirrors.tuna.tsinghua.edu.cn/ubuntu/</a> bionic-security main restricted universe multiverse<br># deb-src <a href="https://mirrors.tuna.tsinghua.edu.cn/ubuntu/">https://mirrors.tuna.tsinghua.edu.cn/ubuntu/</a> bionic-security main restricted universe multiverse</p>
-<p># 预发布软件源，不建议启用<br># deb <a href="https://mirrors.tuna.tsinghua.edu.cn/ubuntu/">https://mirrors.tuna.tsinghua.edu.cn/ubuntu/</a> bionic-proposed main restricted universe multiverse<br># deb-src <a href="https://mirrors.tuna.tsinghua.edu.cn/ubuntu/">https://mirrors.tuna.tsinghua.edu.cn/ubuntu/</a> bionic-proposed main restricted universe multiverse</p>
-</blockquote>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ sudo apt-get update    <span class="comment">#更新一下源</span></span><br></pre></td></tr></table></figure>
-
-<h2 id="wsl常见问题"><a href="#wsl常见问题" class="headerlink" title="wsl常见问题"></a>wsl常见问题</h2><h3 id="查看此电脑上已经安装了哪几种linux发行版"><a href="#查看此电脑上已经安装了哪几种linux发行版" class="headerlink" title="查看此电脑上已经安装了哪几种linux发行版"></a>查看此电脑上已经安装了哪几种linux发行版</h3><figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line">&gt; wsl -l</span><br></pre></td></tr></table></figure>
-
-<h3 id="设置默认调用的wsl"><a href="#设置默认调用的wsl" class="headerlink" title="设置默认调用的wsl"></a>设置默认调用的wsl</h3><p>比如同时安装了kali和ubuntu或ubuntu不同版本，一般默认调用的是其中一种，下条命令可以更改默认发行版</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ wslconfig /setdefault Name    <span class="comment">#此处Name替换发行版名称（从wsl -l 中获取）</span></span><br></pre></td></tr></table></figure>
-
-
-
-
-
-]]></content>
-      <categories>
-        <category>计算机相关</category>
-      </categories>
-      <tags>
-        <tag>wsl</tag>
-        <tag>Ubuntu</tag>
       </tags>
   </entry>
   <entry>
@@ -501,6 +210,57 @@
       </tags>
   </entry>
   <entry>
+    <title>PDB文件格式解读</title>
+    <url>/2021/12/31/pdb_format/</url>
+    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><script class="meting-secondary-script-marker" src="\assets\js\Meting.min.js"></script><p>description: pdb文件格式要求比较严格，做到知己知彼方能应对各种bug。</p>
+<span id="more"></span>
+<p>pdb文件下载地址<a href="https://www1.rcsb.org/"><font color="#0000FF">RCSB</font></a></p>
+<h2 id="格式示例"><a href="#格式示例" class="headerlink" title="格式示例"></a>格式示例</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">#标题部分  </span><br><span class="line">HEADER #分子类型，结构公布日期，ID号             </span><br><span class="line">TITLE  #哪个大分子，分辨率是多少             </span><br><span class="line">COMPND #整个文件中包含哪些分子类型：蛋白、核酸、水、抗衡离子                                                            </span><br><span class="line">SOURCE #以上分子的来源                                                            </span><br><span class="line">KEYWDS #关键词                                                   </span><br><span class="line">EXPDTA #获取结构所用的方法：X-ray/NMR/冷冻电镜                                                    </span><br><span class="line">AUTHOR #结构测定者                                       </span><br><span class="line">REVDAT #修订日期                                                                                  </span><br><span class="line">JRNL   #文章发表的期刊/DOI号等信息                                                              </span><br><span class="line">REMARK #各种杂七杂八的信息，日常基本用不到                                                                                             </span><br><span class="line">#一级结构信息</span><br><span class="line">DBREF  #其他数据库的相关记录            </span><br><span class="line">SEQRES #序列信息</span><br><span class="line">#杂项</span><br><span class="line">HETATM #非标准残基名称</span><br><span class="line">FORMUL #非标准残基的化学式                                                     </span><br><span class="line">#二级结构</span><br><span class="line">HELIX  #α螺旋   </span><br><span class="line">SHEET  #β折叠                                                                               </span><br><span class="line">TURN  #转角</span><br><span class="line">#连接信息注释</span><br><span class="line">SSBOND #二硫键</span><br><span class="line">HYDBND #氢键</span><br><span class="line">SLTBRG #盐桥</span><br><span class="line">#晶胞参数</span><br><span class="line">CRYST1   #晶胞参数，一般只有x-ray测得的结构才有这一项</span><br><span class="line">ORIGX1   #直角-PDB坐标                                             </span><br><span class="line">SCALE1   #直角-晶体分数坐标。给出数据中直角坐标向晶体分数坐标的变换因子                         </span><br><span class="line"></span><br><span class="line">#坐标（核心部分）</span><br><span class="line">--------------------------------------------------------------------------------------------------------------------------------------------</span><br><span class="line">#1-6 左对齐 ATOM/HETATM</span><br><span class="line">#7-11右对齐 原子序号</span><br><span class="line">#13-16左对齐 原子名称</span><br><span class="line">#18-20       残基名称</span><br><span class="line">#22          链名</span><br><span class="line">#23-26       残基序号</span><br><span class="line">#31-38右对齐  x坐标值（单位为A°）</span><br><span class="line">#39-46右对齐  y坐标值</span><br><span class="line">#47-54右对齐  z坐标值</span><br><span class="line">#55-60右对齐  占有率（这个数值可以是0-1间任意一个数，数字为1表示原子坐标就在这里，0表示原子不在这里，在这之间表示原子可能在这里，越接近0表示可能性就越小）</span><br><span class="line">#61-66右对齐  温度因子（描述了电子密度的弥散程度） #77-78右对齐  元素符号 </span><br><span class="line">-------------------------------------------------------------------------------------------------------------------------------------------------------------------------    </span><br><span class="line">ATOM    594  N   GLY A  75      41.165  35.531  31.898  1 36.31           N  </span><br><span class="line">ATOM    595  CA  GLY A  75      41.845  36.550  32.686  1 36.07           C  </span><br><span class="line">ATOM    596  C   GLY A  75      41.251  37.941  32.588  1 36.16           C  </span><br><span class="line">ATOM    597  O   GLY A  75      41.102  38.523  31.500  1 36.26           O  </span><br><span class="line">ATOM    598  N   GLY A  76      40.946  38.472  33.757  1 36.05           N  </span><br><span class="line">ATOM    599  CA  GLY A  76      40.373  39.813  33.944  1 36.19           C  </span><br><span class="line">ATOM    600  C   GLY A  76      40.031  39.992  35.432  1 36.20           C  </span><br><span class="line">ATOM    601  O   GLY A  76      38.933  40.525  35.687  1 36.13           O  </span><br><span class="line">ATOM    602  OXT GLY A  76      40.862  39.575  36.251  1 36.27           O  </span><br><span class="line">TER     603      GLY A  76  </span><br><span class="line">#TER表示一条链的结束                                                    </span><br><span class="line">HETATM  604  O   HOH A  77      45.747  30.081  19.708  1 12.43           O  </span><br><span class="line">HETATM  605  O   HOH A  78      19.168  31.868  17.050  1 12.65           O  </span><br><span class="line"></span><br><span class="line">CONECT  #原子间连接信息</span><br><span class="line">MASTER  #版权所有者     </span><br><span class="line">END     #标志整个文件结束  </span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h2 id="遇到过的恶心事"><a href="#遇到过的恶心事" class="headerlink" title="遇到过的恶心事"></a>遇到过的恶心事</h2><blockquote>
+<p>此外，对于有两条链的PDB文件，即便用TER作为结尾注释，链与链之间的原子序号如果接近的话，用pymol打开还是会有一条很长的虚线连接（就像下图显示的那样），甚是讨厌。这是由于pymol的默认设定导致的，但linux端的pymol无此现象。解决办法：将其中一条链的原子序号同时加300或400，目的是离另外一条链远远的，这要借助excel或notepad++完成。</p>
+</blockquote>
+<p><img src="/2021/12/31/pdb_format/pdb.png#pic_center"></p>
+]]></content>
+      <categories>
+        <category>计算机相关</category>
+      </categories>
+      <tags>
+        <tag>pdb</tag>
+        <tag>文件格式</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>python脚本打包exe</title>
+    <url>/2022/02/13/py2exe/</url>
+    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><script class="meting-secondary-script-marker" src="\assets\js\Meting.min.js"></script><p>python脚本打包，并为打包文件制作安装程序</p>
+<span id="more"></span>
+
+<h2 id="创建打包环境"><a href="#创建打包环境" class="headerlink" title="创建打包环境"></a>创建打包环境</h2><h3 id="安装pipenv"><a href="#安装pipenv" class="headerlink" title="安装pipenv"></a>安装pipenv</h3><figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line">&gt; pip install pipenv</span><br></pre></td></tr></table></figure>
+
+<h3 id="使用pipenv"><a href="#使用pipenv" class="headerlink" title="使用pipenv"></a>使用pipenv</h3><p>创建一个新文件夹env</p>
+<figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line">&gt; <span class="built_in">cd</span> env</span><br><span class="line">&gt; pipenv install --python <span class="number">3</span>.<span class="number">8</span>    #根据需要更改版本号</span><br><span class="line">&gt; pipenv install pyinstaller     #安装依赖的所有包,pyinstaller必装</span><br><span class="line">......</span><br></pre></td></tr></table></figure>
+
+<h2 id="打包"><a href="#打包" class="headerlink" title="打包"></a>打包</h2><figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line">&gt; pyinstaller --distpath Release/ -w -i fig.ico --clean test.py</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://blog.csdn.net/frostime/article/details/90523062">参考文章</a></p>
+<h2 id="为程序包创建安装程序"><a href="#为程序包创建安装程序" class="headerlink" title="为程序包创建安装程序"></a>为程序包创建安装程序</h2><p>上一步打包好的程序是一个文件夹，这一步是给这个文件夹创建一个安装程序（类似于常规软件安装界面），方便给他人使用</p>
+<h3 id="安装Setup-factory"><a href="#安装Setup-factory" class="headerlink" title="安装Setup factory"></a>安装Setup factory</h3><p><a href="https://pan.baidu.com/s/1YWOwNIkxrTPlWWes6PH4BA">链接</a> 关注文末公众号，后台回复’setup’获取提取码。</p>
+<h3 id="使用Setup-factory"><a href="#使用Setup-factory" class="headerlink" title="使用Setup factory"></a>使用Setup factory</h3><p><img src="/2022/02/13/py2exe/fig1.png#pic_center"></p>
+<p>按照下图输入必要信息</p>
+<p><img src="/2022/02/13/py2exe/fig2.png#pic_center"></p>
+<p>建议制作32位的，这样同时兼容32位和64位系统<br><img src="/2022/02/13/py2exe/fig3.png#pic_center"></p>
+<p>路径选择刚才打包的程序文件夹<br><img src="/2022/02/13/py2exe/fig4.png#pic_center"></p>
+<p>以下步骤按照图片提示信息操作，没有提示信息的默认下一步<br><img src="/2022/02/13/py2exe/fig5.png#pic_center"><br><img src="/2022/02/13/py2exe/fig6.png#pic_center"><br><img src="/2022/02/13/py2exe/fig7.png#pic_center"><br><img src="/2022/02/13/py2exe/fig8.png#pic_center"><br><img src="/2022/02/13/py2exe/fig9.png#pic_center"><br><img src="/2022/02/13/py2exe/fig10.png#pic_center"><br><img src="/2022/02/13/py2exe/fig11.png#pic_center"><br><img src="/2022/02/13/py2exe/fig12.png#pic_center"><br><img src="/2022/02/13/py2exe/fig13.png#pic_center"><br><img src="/2022/02/13/py2exe/fig14.png#pic_center"></p>
+]]></content>
+      <categories>
+        <category>计算机相关</category>
+      </categories>
+      <tags>
+        <tag>python</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>pymol常用命令_持续更新</title>
     <url>/2021/12/31/pymol%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4_%E6%8C%81%E7%BB%AD%E6%9B%B4%E6%96%B0/</url>
     <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><script class="meting-secondary-script-marker" src="\assets\js\Meting.min.js"></script><p>pymol日常高频使用场景及对应的commond line</p>
@@ -559,6 +319,32 @@
       </tags>
   </entry>
   <entry>
+    <title>rutracker薅资本家羊毛</title>
+    <url>/2022/03/13/rutracker/</url>
+    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><script class="meting-secondary-script-marker" src="\assets\js\Meting.min.js"></script><p>…</p>
+<span id="more"></span>
+
+<blockquote>
+<p>因为近期俄乌冲突，毛熊被制裁，于是放开了对本国最大的dao版网站rutracker的限制。上面各种po解软件。试了一下很多专业软件都能找到绿色版（这里不好提名字，你能想到的一般都有资源，只是可能版本号是较早的）</p>
+</blockquote>
+<h2 id="给chrome或edge浏览器安装rutracker访问插件"><a href="#给chrome或edge浏览器安装rutracker访问插件" class="headerlink" title="给chrome或edge浏览器安装rutracker访问插件"></a>给chrome或edge浏览器安装rutracker访问插件</h2><p><a href="rutracker.zip"><font color="#DC143C">下载链接</font></a>在这<br>怎么给浏览器安装插件自行百度，很容易。</p>
+<h2 id="借助必应搜索引擎搜索rutracker站内资源"><a href="#借助必应搜索引擎搜索rutracker站内资源" class="headerlink" title="借助必应搜索引擎搜索rutracker站内资源"></a>借助必应搜索引擎搜索rutracker站内资源</h2><blockquote>
+<p>rutracker想要搜索站内资源必须注册登录，不知什么原因rutracker现在不能注册新用户，无奈只能借助必应搜索引擎了。<br>搜索格式如下:</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">搜索资源名 site:http://rutracker.org</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>注意:搜索资源名与site之间有空格<br>搜索到的资源链接多数以bt种子的形式提供，迅雷下载即可。</p>
+</blockquote>
+<p><img src="/2022/03/13/rutracker/fig1.png#pic_center"></p>
+]]></content>
+      <categories>
+        <category>计算机相关</category>
+      </categories>
+      <tags>
+        <tag>软件下载</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Shell编程常用命令—持续更新</title>
     <url>/2021/12/31/shell_commond/</url>
     <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><script class="meting-secondary-script-marker" src="\assets\js\Meting.min.js"></script><p>Shell编程常用命令，毕竟非科班出身，没必要非得全部记住，需要时能找出来用就行。</p>
@@ -595,81 +381,295 @@
       </tags>
   </entry>
   <entry>
-    <title>293细胞培养</title>
-    <url>/2021/12/31/293cell/</url>
-    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><script class="meting-secondary-script-marker" src="\assets\js\Meting.min.js"></script><p>最近在做293细胞给药检测荧光变化的实验，以往只做过昆虫悬浮细胞培养，第一次接触贴壁细胞说实话内心还是有些犯怵的。<br>结合在网上搜刮到的一些资料和近几天实操结果记录一下心得体会。</p>
+    <title>Windows Subsystem for Linux(wsl)及带有gui的wsl</title>
+    <url>/2022/01/21/win11_wsl/</url>
+    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><script class="meting-secondary-script-marker" src="\assets\js\Meting.min.js"></script><p>win11起开始支持带有图形化界面的wsl了，配置起来方便多了！</p>
 <span id="more"></span>
-<h2 id="准备阶段"><a href="#准备阶段" class="headerlink" title="准备阶段"></a>准备阶段</h2><h3 id="需要用到的试剂器材"><a href="#需要用到的试剂器材" class="headerlink" title="需要用到的试剂器材"></a>需要用到的试剂器材</h3><blockquote>
-<ul>
-<li>含10%胎牛血清（FBS）和1%PS的DMEM完全培养基（提前用50ml离心管分装）  </li>
-<li>0.25%胰蛋白酶</li>
-<li>PBS缓冲液</li>
-<li>移液管</li>
-<li>10cm培养皿</li>
-</ul>
-</blockquote>
-<h2 id="复苏"><a href="#复苏" class="headerlink" title="复苏"></a>复苏</h2><blockquote>
-<p>这一步和复苏昆虫细胞一致。注意点无非是冻存的细胞拿到37度水浴锅的速度要快（尽快度过-4℃到4℃这个危险温度范围）；<br>另外培养基提前预热；细胞在还有一点团块时从水浴锅中取出，利用余热将剩余的溶解。</p>
-</blockquote>
-<h2 id="传代"><a href="#传代" class="headerlink" title="传代"></a>传代</h2><blockquote>
-<p>这一步在一开始接触时很容易手忙脚乱。做过两次就好了。</p>
-<ul>
-<li>传代前先观察看细胞长的密度（大概估算一下,如果两两细胞之间的空隙普遍能再塞下一个细胞，细胞密度50%，若只能塞下半个细胞则密度约为75%），一般大于90%或长满再传<br>如果细胞培养基发黄了，立即更换培养基（没长满或密度低只要换上清不用传）</li>
-<li>确定可以传代了，则吸出上清，尽快沿壁加入5ml PBS ，由于293贴壁性较差，最好不要吹打，稍微晃一晃培养皿就好了，然后吸去PBS。相同的操作进行两次</li>
-<li>吸取1-2ml 0.25%胰蛋白酶均匀加到培养皿中。（我10cm的皿加1ml）常温下消化1-2min</li>
-<li>吸取5-6ml完全培养基加入到培养皿中（用以终止胰蛋白酶消化）。反复吹打，把壁上的细胞都吹下来。</li>
-<li>吸取上一步吹打下来的细胞悬液到15ml离心管中，1000r离心2.5min.</li>
-<li>直接倒掉上清，利用残留的一点上清悬起细胞（收轻轻敲打离心管，如果实在敲不下来那就等下一步加培养基稀释时用吸管吹吧）</li>
-<li>将细胞悬起之后记下数，尽量维持在1*10e6个/ml。浓了再加点培养基稀释。</li>
-<li>取新的皿，向其中加入8ml完全培养基。取上一步细胞悬液2ml加进去。吸管吹打几遍让细胞混匀。</li>
-<li>放进培养箱24h之后观察。</li>
-</ul>
-</blockquote>
-<h2 id="冻存"><a href="#冻存" class="headerlink" title="冻存"></a>冻存</h2><blockquote>
-<ul>
-<li>前7步和传代一样，接下来用1ml含10%DMSO的完全培养基重悬；</li>
-<li>转移到冻存盒，-80℃存放72小时；</li>
-<li>转移到液氮罐长存。</li>
-</ul>
-</blockquote>
-<h2 id="转染"><a href="#转染" class="headerlink" title="转染"></a>转染</h2><blockquote>
-<ul>
-<li>5ml不含双抗、不含胎牛血清的DMEM加入10微克DNA，室温下放置5min;</li>
-<li>5ml不含双抗、不含胎牛血清的DMEM加入2~3倍质量的PEI（别问我为什么用这个，问就是这个最便宜，hhh），室温孵育5min;</li>
-<li>含PEI的DMEM加入到含DNA的DMEM中，室温孵育15-20min;(顺序千万不能弄错)；</li>
-<li>加入到细胞密度大于75%的培养皿中（原有的培养基已经移除），等待4-6h，更换新鲜含双抗的完全培养基继续培养36-48h(中间视情况选择是否更换培养基)。</li>
-</ul>
-<p>像293这种容易转染的细胞第四步4h足够了，因为PEI这玩意儿还是很毒的，能少存在一会儿最好。<br>此外在有PEI存在培养基的情况下万不可添加抗生素，看网上说PEI改变细胞膜通透性，抗生素若存在的话进入细胞中影响细胞生长。  </p>
-</blockquote>
-<p>相关帖子：<a href="https://zhuanlan.zhihu.com/p/163109490"><font color="#0000FF">知乎:293protocal</font></a> 、 <a href="https://www.biomart.cn/experiment/review/92.htm"><font color="#0000FF">丁香园:PEI转染</font></a></p>
-]]></content>
-      <categories>
-        <category>实验相关</category>
-      </categories>
-      <tags>
-        <tag>293</tag>
-        <tag>贴壁细胞</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>PDB文件格式解读</title>
-    <url>/2021/12/31/pdb_format/</url>
-    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><script class="meting-secondary-script-marker" src="\assets\js\Meting.min.js"></script><p>description: pdb文件格式要求比较严格，做到知己知彼方能应对各种bug。</p>
-<span id="more"></span>
-<p>pdb文件下载地址<a href="https://www1.rcsb.org/"><font color="#0000FF">RCSB</font></a></p>
-<h2 id="格式示例"><a href="#格式示例" class="headerlink" title="格式示例"></a>格式示例</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">#标题部分  </span><br><span class="line">HEADER #分子类型，结构公布日期，ID号             </span><br><span class="line">TITLE  #哪个大分子，分辨率是多少             </span><br><span class="line">COMPND #整个文件中包含哪些分子类型：蛋白、核酸、水、抗衡离子                                                            </span><br><span class="line">SOURCE #以上分子的来源                                                            </span><br><span class="line">KEYWDS #关键词                                                   </span><br><span class="line">EXPDTA #获取结构所用的方法：X-ray/NMR/冷冻电镜                                                    </span><br><span class="line">AUTHOR #结构测定者                                       </span><br><span class="line">REVDAT #修订日期                                                                                  </span><br><span class="line">JRNL   #文章发表的期刊/DOI号等信息                                                              </span><br><span class="line">REMARK #各种杂七杂八的信息，日常基本用不到                                                                                             </span><br><span class="line">#一级结构信息</span><br><span class="line">DBREF  #其他数据库的相关记录            </span><br><span class="line">SEQRES #序列信息</span><br><span class="line">#杂项</span><br><span class="line">HETATM #非标准残基名称</span><br><span class="line">FORMUL #非标准残基的化学式                                                     </span><br><span class="line">#二级结构</span><br><span class="line">HELIX  #α螺旋   </span><br><span class="line">SHEET  #β折叠                                                                               </span><br><span class="line">TURN  #转角</span><br><span class="line">#连接信息注释</span><br><span class="line">SSBOND #二硫键</span><br><span class="line">HYDBND #氢键</span><br><span class="line">SLTBRG #盐桥</span><br><span class="line">#晶胞参数</span><br><span class="line">CRYST1   #晶胞参数，一般只有x-ray测得的结构才有这一项</span><br><span class="line">ORIGX1   #直角-PDB坐标                                             </span><br><span class="line">SCALE1   #直角-晶体分数坐标。给出数据中直角坐标向晶体分数坐标的变换因子                         </span><br><span class="line"></span><br><span class="line">#坐标（核心部分）</span><br><span class="line">--------------------------------------------------------------------------------------------------------------------------------------------</span><br><span class="line">#1-6 左对齐 ATOM/HETATM</span><br><span class="line">#7-11右对齐 原子序号</span><br><span class="line">#13-16左对齐 原子名称</span><br><span class="line">#18-20       残基名称</span><br><span class="line">#22          链名</span><br><span class="line">#23-26       残基序号</span><br><span class="line">#31-38右对齐  x坐标值（单位为A°）</span><br><span class="line">#39-46右对齐  y坐标值</span><br><span class="line">#47-54右对齐  z坐标值</span><br><span class="line">#55-60右对齐  占有率（这个数值可以是0-1间任意一个数，数字为1表示原子坐标就在这里，0表示原子不在这里，在这之间表示原子可能在这里，越接近0表示可能性就越小）</span><br><span class="line">#61-66右对齐  温度因子（描述了电子密度的弥散程度） #77-78右对齐  元素符号 </span><br><span class="line">-------------------------------------------------------------------------------------------------------------------------------------------------------------------------    </span><br><span class="line">ATOM    594  N   GLY A  75      41.165  35.531  31.898  1 36.31           N  </span><br><span class="line">ATOM    595  CA  GLY A  75      41.845  36.550  32.686  1 36.07           C  </span><br><span class="line">ATOM    596  C   GLY A  75      41.251  37.941  32.588  1 36.16           C  </span><br><span class="line">ATOM    597  O   GLY A  75      41.102  38.523  31.500  1 36.26           O  </span><br><span class="line">ATOM    598  N   GLY A  76      40.946  38.472  33.757  1 36.05           N  </span><br><span class="line">ATOM    599  CA  GLY A  76      40.373  39.813  33.944  1 36.19           C  </span><br><span class="line">ATOM    600  C   GLY A  76      40.031  39.992  35.432  1 36.20           C  </span><br><span class="line">ATOM    601  O   GLY A  76      38.933  40.525  35.687  1 36.13           O  </span><br><span class="line">ATOM    602  OXT GLY A  76      40.862  39.575  36.251  1 36.27           O  </span><br><span class="line">TER     603      GLY A  76  </span><br><span class="line">#TER表示一条链的结束                                                    </span><br><span class="line">HETATM  604  O   HOH A  77      45.747  30.081  19.708  1 12.43           O  </span><br><span class="line">HETATM  605  O   HOH A  78      19.168  31.868  17.050  1 12.65           O  </span><br><span class="line"></span><br><span class="line">CONECT  #原子间连接信息</span><br><span class="line">MASTER  #版权所有者     </span><br><span class="line">END     #标志整个文件结束  </span><br><span class="line"></span><br></pre></td></tr></table></figure>
 
-<h2 id="遇到过的恶心事"><a href="#遇到过的恶心事" class="headerlink" title="遇到过的恶心事"></a>遇到过的恶心事</h2><blockquote>
-<p>此外，对于有两条链的PDB文件，即便用TER作为结尾注释，链与链之间的原子序号如果接近的话，用pymol打开还是会有一条很长的虚线连接（就像下图显示的那样），甚是讨厌。这是由于pymol的默认设定导致的，但linux端的pymol无此现象。解决办法：将其中一条链的原子序号同时加300或400，目的是离另外一条链远远的，这要借助excel或notepad++完成。</p>
+<h2 id="升级到win11"><a href="#升级到win11" class="headerlink" title="升级到win11"></a>升级到win11</h2><p>想要接收win11更新推送前提要保证win10已经更新到21H2及以上版本。</p>
+<p>此外win11对硬件有一定要求，安装微软提供的<a href="WindowsPCHealthCheckSetup.msi"><font color="#DC143C">检测工具</font></a>看你的设备够不够资格(双击默认安装)</p>
+<h2 id="命令行安装wsl"><a href="#命令行安装wsl" class="headerlink" title="命令行安装wsl"></a>命令行安装wsl</h2><p>我的微软商店连不上，好在win11可以直接在cmd中安装</p>
+<figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line">&gt; wsl --list --online     #查看有哪些可供安装的wsl发行版</span><br></pre></td></tr></table></figure>
+<p><img src="/2022/01/21/win11_wsl/list.png#pic_center" alt="可供安装的wsl发行版"></p>
+<figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line">&gt; wsl --install -d Ubuntu-<span class="number">18</span>.<span class="number">04</span>     #我选择安装ubuntu</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>如果安装完成后报下面的错误，则安装<a href="wsl_update_x64.msi"><font color="#DC143C">内核升级工具</font></a> (双击默认安装)<br>Installing, this may take a few minutes… WslRegisterDistribution<br>failed with error: 0x800701bc Error: 0x800701bc WSL 2 ???<br><a href="https://aka.ms/wsl2kernel">https://aka.ms/wsl2kernel</a></p>
+<p>Press any key to continue…</p>
 </blockquote>
-<p><img src="/2021/12/31/pdb_format/pdb.png#pic_center"></p>
+<p>关闭已打开的wsl，重新开启报错消失，设置好用户名和密码。</p>
+<h2 id="更新安装wsl-gui"><a href="#更新安装wsl-gui" class="headerlink" title="更新安装wsl-gui"></a>更新安装wsl-gui</h2><p>打开cmd</p>
+<figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line">&gt; wsl --update    </span><br></pre></td></tr></table></figure>
+<p>更新过后重启一次</p>
+<figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line">wsl --shutdown   #完全关闭wsl</span><br></pre></td></tr></table></figure>
+<p>再开启wsl即可打开图形应用（试试装个gedit或者pymol看看）</p>
+<h2 id="更换安装源"><a href="#更换安装源" class="headerlink" title="更换安装源"></a>更换安装源</h2><p>在wsl环境中输入</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ sudo gedit /etc/apt/sources.list</span><br></pre></td></tr></table></figure>
+<p>添加以下内容:</p>
+<blockquote>
+<p>deb <a href="http://mirrors.aliyun.com/ubuntu/">http://mirrors.aliyun.com/ubuntu/</a> bionic main restricted universe multiverse<br>deb-src <a href="http://mirrors.aliyun.com/ubuntu/">http://mirrors.aliyun.com/ubuntu/</a> bionic main restricted universe multiverse</p>
+<p>deb <a href="http://mirrors.aliyun.com/ubuntu/">http://mirrors.aliyun.com/ubuntu/</a> bionic-security main restricted universe multiverse<br>deb-src <a href="http://mirrors.aliyun.com/ubuntu/">http://mirrors.aliyun.com/ubuntu/</a> bionic-security main restricted universe multiverse</p>
+<p>deb <a href="http://mirrors.aliyun.com/ubuntu/">http://mirrors.aliyun.com/ubuntu/</a> bionic-updates main restricted universe multiverse<br>deb-src <a href="http://mirrors.aliyun.com/ubuntu/">http://mirrors.aliyun.com/ubuntu/</a> bionic-updates main restricted universe multiverse</p>
+<p>deb <a href="http://mirrors.aliyun.com/ubuntu/">http://mirrors.aliyun.com/ubuntu/</a> bionic-proposed main restricted universe multiverse<br>deb-src <a href="http://mirrors.aliyun.com/ubuntu/">http://mirrors.aliyun.com/ubuntu/</a> bionic-proposed main restricted universe multiverse</p>
+<p>deb <a href="http://mirrors.aliyun.com/ubuntu/">http://mirrors.aliyun.com/ubuntu/</a> bionic-backports main restricted universe multiverse<br>deb-src <a href="http://mirrors.aliyun.com/ubuntu/">http://mirrors.aliyun.com/ubuntu/</a> bionic-backports main restricted universe multiverse</p>
+<p># 默认注释了源码镜像以提高 apt update 速度，如有需要可自行取消注释<br>deb <a href="https://mirrors.tuna.tsinghua.edu.cn/ubuntu/">https://mirrors.tuna.tsinghua.edu.cn/ubuntu/</a> bionic main restricted universe multiverse<br># deb-src <a href="https://mirrors.tuna.tsinghua.edu.cn/ubuntu/">https://mirrors.tuna.tsinghua.edu.cn/ubuntu/</a> bionic main restricted universe multiverse<br>deb <a href="https://mirrors.tuna.tsinghua.edu.cn/ubuntu/">https://mirrors.tuna.tsinghua.edu.cn/ubuntu/</a> bionic-updates main restricted universe multiverse<br># deb-src <a href="https://mirrors.tuna.tsinghua.edu.cn/ubuntu/">https://mirrors.tuna.tsinghua.edu.cn/ubuntu/</a> bionic-updates main restricted universe multiverse<br>deb <a href="https://mirrors.tuna.tsinghua.edu.cn/ubuntu/">https://mirrors.tuna.tsinghua.edu.cn/ubuntu/</a> bionic-backports main restricted universe multiverse<br># deb-src <a href="https://mirrors.tuna.tsinghua.edu.cn/ubuntu/">https://mirrors.tuna.tsinghua.edu.cn/ubuntu/</a> bionic-backports main restricted universe multiverse<br>deb <a href="https://mirrors.tuna.tsinghua.edu.cn/ubuntu/">https://mirrors.tuna.tsinghua.edu.cn/ubuntu/</a> bionic-security main restricted universe multiverse<br># deb-src <a href="https://mirrors.tuna.tsinghua.edu.cn/ubuntu/">https://mirrors.tuna.tsinghua.edu.cn/ubuntu/</a> bionic-security main restricted universe multiverse</p>
+<p># 预发布软件源，不建议启用<br># deb <a href="https://mirrors.tuna.tsinghua.edu.cn/ubuntu/">https://mirrors.tuna.tsinghua.edu.cn/ubuntu/</a> bionic-proposed main restricted universe multiverse<br># deb-src <a href="https://mirrors.tuna.tsinghua.edu.cn/ubuntu/">https://mirrors.tuna.tsinghua.edu.cn/ubuntu/</a> bionic-proposed main restricted universe multiverse</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ sudo apt-get update    <span class="comment">#更新一下源</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="wsl常见问题"><a href="#wsl常见问题" class="headerlink" title="wsl常见问题"></a>wsl常见问题</h2><h3 id="查看此电脑上已经安装了哪几种linux发行版"><a href="#查看此电脑上已经安装了哪几种linux发行版" class="headerlink" title="查看此电脑上已经安装了哪几种linux发行版"></a>查看此电脑上已经安装了哪几种linux发行版</h3><figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line">&gt; wsl -l</span><br></pre></td></tr></table></figure>
+
+<h3 id="设置默认调用的wsl"><a href="#设置默认调用的wsl" class="headerlink" title="设置默认调用的wsl"></a>设置默认调用的wsl</h3><p>比如同时安装了kali和ubuntu或ubuntu不同版本，一般默认调用的是其中一种，下条命令可以更改默认发行版</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ wslconfig /setdefault Name    <span class="comment">#此处Name替换发行版名称（从wsl -l 中获取）</span></span><br></pre></td></tr></table></figure>
+
+
+
+
+
 ]]></content>
       <categories>
         <category>计算机相关</category>
       </categories>
       <tags>
-        <tag>pdb</tag>
-        <tag>文件格式</tag>
+        <tag>wsl</tag>
+        <tag>Ubuntu</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>three_body有声书</title>
+    <url>/2022/01/26/%E4%B8%89%E4%BD%93%E6%9C%89%E5%A3%B0%E4%B9%A6/</url>
+    <content><![CDATA[<div class="hbe hbe-container" id="hexo-blog-encrypt" data-wpm="抱歉, 这个密码看着不太对, 请再试试." data-whm="抱歉, 这个文章不能被校验, 不过您还是能看看解密后的内容.">
+  <script id="hbeData" type="hbeData" data-hmacdigest="603060576c794d62dbb32492dd4da84f97c005bda64240dbd97e238f6dfe36e3">f0840aa5ec3ed0672a5a21f0f54f68ad80c5b1ccc95f9bcf6ac6a8e493610ea91b24004b30b4c673e8bbfac7dc2d1245348e69044db3aa0d4824f8d655ab8e2ffd94156206cfae453e3ccffbcdd4ee84782112e5edf372e1311990ee215ae3599ccd0d60fd0ef22cf472bf53cb65abcfd8165c6d2737b1de34c6af19de87946eb49150ba40f59d2fa928eaf2e38601a239bbe602ce6bb521c1afb86d34797700e292ec5f8d0b1b4d18144bb4f4d423f0e601ed89fe24768bef81774ae2d798f0dae21bff942c7e88f8a50daa7b7aeab37ef28ad98fa0c28d16a905a92a3ab58006a30e0396a5e4696f34860acba19c734022cd8df8089d389a449cf807fd1394bca11029c3e43bc11de0c119ab990dafabd75f28d4084ed4067010f0a0d14f555dac3a6a2ca85078acaa6df30a318ad36b58d8d014371aeb6d08c8cc6f925bb2635df22e372a84221f34679bf33aeaab52e3ee94c72795ae59a41138c934209953279f6cddaef6ef430e9e6d0228b76177cae2bdb7574e2255d80582a19b7b6f61276d256a32bef2a1a48f45683248314d85ec7bc06fc99da50a18851632a4af72da323492bbcd8b9b24027040abcff17e4760d59ff21b0003bd029e91dbcd5231a143c3efa445956997888d8c27db1da99c28fcda38b8d1c12fca39e51216cb666c02d29ed7a1eb61e70f98d5ed107281ee0f06590a3c830edc472be35b845aced0e19b19511469c1304776c37345675dcbe3368ffa8aabe414b74251d09d77ed278c5a2a2b4b76b2945e1ee19dcdd673a8341fb21d8eff9fa9647a75036fe156b9bca21b1d03331cfb2c0b19abad9f7912e21b05637373f2eb9b3160d8d677508b94c40f99478003b86255c31a2bcafb2d3763a9d6e0b7c9d549207971789b339f9aaa1dce8ac2a045f2994288be1c55cdc4220032660b9911a57c5be8217d2d6ad86b0d01ff3df203ed791332e5bf3365f5ddf6ddf37cbe72ee9fb6c2cc29a9ba0d10cfa61dce2ee68bbbf9e0d0f8b03fbba47ccfa11b34e315afd1f03b5c46ab2fba21cb0f9ec11cfb252040d4ceda0e2caa8bd2adc6d2ea93872549c425eee620cd7d7dd96ec001e0c68cc57c664e92214917ad50ef72be9da074592b5ebc5fd9e98a21e81ad1c98284109247d1eb49abe612702f0b657c921c1cba277e877111fab75640f12ca730854035647cba0141e2968d7ccfb492a3f8dde182590d671f6579e7b1ffd2bce10a74faffd404c04c8795f69e5d13f9449e8d3ee03d25b526d15822be7ad2e46fb571962fc6206a733776a8daab01eff3fe4e348ed588553a270618f701fd57515a315fa637fbd597af0879c507112fb5f787e553e034f1bc17367185fa400b1eaf4024cc458f216bd4bd9978bf2c488382727c758129f2d4b159c2007fd00efc8aae7245bcc1dcfb7c592bba0ecac2d4105309d1b49beb8af2cb1650782646643e6c28ce58b1f649545825d98eb95be894d094a7d7636ac4db27e3795f50dff98c5e9caf29b1bf62b61a66a507b5b35c5dae3afd1119c0da22fa878e1a05e48164cff0bf6197ef855ba3428aef7459110ae0d5f06ec2abbf18e330099549da6396ec5a0acd0e268da820d3eefc4123152723e9877f6490e5a074e5f3321fc41ec39b88c5ed06cf7360d92f9524d168118059648e7281e543591b5bf4fa33382618538a350d35d8948ea59747fcfe7971c87650d53cff1c05f6916e97f7dd488f63c937acad8080bdb723fb2794f9c9c710072ea7e1e642672e73f71fb0b798ae5b5a22bdfcd96a708e0b47517e7a6ab1afbc1609a3ff0d3f116f0a2228ac3643823e20c190bd6f63fbfa3eb09b2e1d8292e46dfb901797f1be2b7fea8bf73aca38219d52239b7ed5105ee78cf1d6aac1a7e811020778f31852f5f5232f5c6b3be172d83187d3831eab714d03fcb9e8b209c8d9ab1f89218ed749214d93bdeb289ae23fc1983904e2ccda6adf6a7164346e8960d1697687f5e5988797765854a82ff6ee223c5e708c150cd930cc2ed37024e1b83c36cd2585479b6743ca9213a546840dbda3bd6c00fd963e39776bc2904c27b99a549e847eef20e5f29039e25a93d66ad67e7e69c6af3dcbaa09bf9ec5106c42976fc6d799fd0c1f37984b463c858b54afe02561b23194d66e256025f3cf1e102f2460e2704571602f9b1b27e79e8a86e50bcbad96beeda76422340ec0458f50b7218b8ca0ddd01971a8719c94cec83d629d6e8c3ea6d2b4847ce63f26f3a51960deed957d2b2481ccf2cfffaaa5c2b826908a8446531aa154b825b39316309c7bd3f0cdd9debb6003c8ff3965e0154fc7d8bd277e3d6e8794a65841a1393ba8c6f56d7d0cbbc92800457dd35f44553b943ca22a91fbc5aad9ef8cfba9a98a7c220a3eff1d054fc12d34c1de56c1aed23bec78ef90931e93ce2cae79059caadbf54cda24cf7544cd8eed737b331e4cfdcb5316382a47d034cf68be3ed65448425c6b869fddd0d44376507082124f328aecff67364dce0923d88a593de860b03c0bf46b4292c1c08465afcf216a9b55ad1814117b8a08914c7456e7d49bdf3fc730b883904003d02b9ab0457667a433b80a8f130b5662c6ec3425d88a4f2b8ca46b6f47f9fdc0f2d7d4e48ba91e8c7434c667aaf8b6b6450cde98f2461aa06f432480efeb8ddae8166fb8b71925d3709c0e056b499ed663455a4b341f8c77487677f13f314e5a5eb037abbdc0038a0d4195a430b026c52185d417ae6ff4f2ab19d08559d69aa8f4bfe8ec657881356fbe990f8e5928945d3344d75896f5eea0e8fcdd4de194531484bf67305a5ed9a864bc9984a2e013869d65b9f4708e8377433f1506683c87aacebba64425cf08ba37d6a8d4fc51003ee95ef15e16674018cb6e3cc54c1673e67990dac26cf77538f2ec6341eedc76ff109f926e31c8e1844844f63820fbe84208851392d8b182c2d4abbf526cf2dc03b441a2be4810c82dc10f921825a8df9801b7fc90a6af7df8229374be83d46dcaef76aab49f3fdd298f6daec65ec5110cb2e7142da890c6806a1ea4e13e6058035f5d729607e111509b47865814ec71e2593f704e19aaeda31a6eed2ab3dc7052010067f57177e642a2841a35a12480419ee97614837d6ee9ec0c69726aa9faa84d6f5b3a512cd645f8d4ec34fb3d03c8f445f3467017d09fd698b6c0499f991142f97965cffcf74161b989d03c163ff290fb5c4947aec60478b91e9c188cd5bfc01e3b81b7e5001753ce35e319a8824460638762a411f6a3492955c4ee52ae01eae845948d333f637e137cf3836f9bbccd07c6bb8cc80d7e99e89ab39e50f9ae1930358da9d171ccdc4e2a2d8400238fdaf3222e36a35adc9248ebffb9e1a7a3d72ef69f511db983c7423c0f19c154481e0153c7ea72ed644e6ff06de56a220b86e8f36697c2b680b8a0be643fdfcf3004572a1943443ecb07fb01056e2d45080dc49017e80ada0e948c9826e7f304844a0027ba50497ed513531d41639d78e6b075ef55bf73778f0b9b22e26d7f767d7911e2303322a687a2c365ce5c7e8c3b65a8550202399e4fc50221eb0481151d46bfd1cd0fc2145987b10320b5788287a82e60165a0364a071bfc482d31b4bc1abf5dc6f4ac3ee1408cd6cef068eb33655cbf70727a1211efa3aec44c401f07de65ce8dd8a1ff13d48cf146239389260930d5a0f3e8da5bdef5c2a03f2e71d48d6c1979d9e12a183139c56c87284ea7a4962831fe0a5525d4c2e58f9edc909c93ca0abcfeef2c1404326eff4629d6787589b3ae490bf1ef5f7102e18c7e251c663cdd573d19772f402bf1d520ada898d50fcbe2c64456b51ed054b25caa3ea237f81496d3b56098402160ce36ac96a1662191da373d336e671dee190e75277f1319f2fc24aa3dd0034d3f9da69a16ffd4d9d4b7e947ff1281d644ccd9e6009612a761f195c707b81a98e0fc5972ba989a3fb495a586c096322b249d85ce9d5538020ef0812e24b0fd20ee0c4755662b8072c5a5f72d11c25cec8f401210d6423644c3091367ad653bab227f5cb201e9b6cfe71f3f0396d13fb637195613297321c5698454bf9d60ced99893232adca4bbbcbdeb13b68c488b0fb76397792a0ad961948ba0300151a3c420bf4a4bc5e26e4807161799afb997acd1d33388ebe5c270855ccaf6e719694431970a5424cab9308c649cc8c413297e02e9b86fee0891fa21daf44a4f513e58e0b0412ce13467b78d110b0a4521acbdb80c0d5038b821b28e7c7de3242f40b3dba8f53c9ced5933dafe4a010f4bbba81e760e37cdd1677bed90e7d2f8716fda7474e0deb1f29d21b898e814c2cace151160b7746621abe2933aae8002913ecbfd5da127f8998f272ceba475b1747421cc7d8391cccbfc0d48096fa69e36a11f6236d39a21a8ae2b1b2d76aff16750cd3bb72cb84b33e2569241c9a0d760b5876927b54281ae5db292e933bd78b73c473cbf6c7871bb0512b52aafec8d38d1305164edb434afeb35e048debb4708e25249703697c9fdea5681c6cb85e96379bd7f6af95bb4707e19dc078632e8254a4eeadb4628c2555dce48897abb092b03cd7faef80045653708fe1b6d5e26229c6e14cf70dddd278eff282c742c46fa3aa3d6ff98aafcbaec4705905e1e2c48a99110baa1b17e8806d0fa3e5d471ddd99ea1bb759502af71fd265707f569daf5d884dfb3cfa3ba6cd782e89901cb15d482a22935d2e56ff19728d59b1124053f3c30453a3259f4a0133896c656e355b02f098721b94dd9d028be54590d22e43ce556e3100b6875ca6699933718a5c48099f700aa0d7ab3ab2ae58b12c4cefd99b005365d79413915505103baff7fdcde64feb9fa93518f786e5494f31450d5db4f89e08c7ad1cd2c366f00b082fc49ce5a631aecaa945d626aba8caaa140bc32ac398786ebe64c34878e275465839de29952c189077aeb13c67cb452c4963b321c9e7d2f4cc47d45cfd3b72d727e8e198cce05393cf73dace3648124ada3738507494687edf51055a48d0bb54a68c9aa71750b24ef2ad5eeac17279f5a2321d31002ca1fcdd180c770ae406819979f910458d06cb3b0608227aa100162bca7b242bc33b32b57d9aede980210bf6cd34d199e7c05c0e7698d18bb36a2fb5ac12ffab409d1e05837b22703ec9db7ba4f55cf8090467641de076b74f02fec763e8f55f4822855ae7604198b863b59c24819b084fd44681dc79f5a213182c5310ea8360f65cf163a3015de0744c60d43f4d7429d1e89d196286ab52e8b8d2db974c12ebbaac6904cf1fef5b5913ff81fb32b9d89c386f6d77af9510fbf343b2a749c8e3242009ae701c07b19ce5dfade63ddfe71036ba679417c56078964df7381077b29d84dbf48589b8f5cb1dd53698032e5bb4c23af1ab3e877ee5429686e89dd82d13d526389becd6a066dc6f1e68687a8369f8d28cd365fa8d282f34479fd60beb0347ff1c0148b352fa64f31adc4865ebbdc5ee345993b6d76f805bea85c7dd90a61b25fd729e7ba3905984dddc830cf2ed23ab8c9149f07531794d1e4f323209038820d7923c86d215e6232808f9ceabd30014248f6483a0f00ee3694856d6af8afa376bc7df1f74836b4bf7a877082fcbf874b178cc0ddd255cc701c61087090918cee2ecd8a3d028e5c26fea82fcf96e7ff36dcdba4b7527e661302d9f7aacfa24b3e4788835b6f1c3587a76a95bc93dec41eb9f4163d5a2e7928a64c8b3adc00bc455ddb21a83eaa64eee47ee8e43da615ea38df9819ee16f9671e6dfa3102732edd36b1ed1ef12d0dd3553d9a6bfda7c7e098865097d706825ab6c6f1d9b25778bbd59778e8ede87c5566500fa11cd614e773323cfca14d3ed3996dddffdbffd0a621a7b82eda2da1b95974f2c6a6f133bb046c22520be7d975037f352b9f1ee9f0ee8998490ee6e1bcd21c317a26e55939cbfe969571b2212069dea5f0841ee22f744638fd22af333d7963a6222755128b1dedd7cc1fde2473fdd8faa95c315502c4681fc484a04ab3f680ab6f90e2e5e85d067a1fed2fe3a3b9b9996c66eda4e6b65e922988b4fd37a17c8518bbb7f026affa30e52f200fa4bf76b711885c25f5494ae78ea062331ae131eec1c55b94f73e27f1d22418116991c6cbe2878890363a47c164e56c8bb1cb86538781e52e3a62132306d9aded37873f9b2e23ed25dc7e0e04ff03620fca4dab97504e44be0472720d08b49248be0d050456820682d123934924106ee774c5e6a3582276cb73a21c5ea533da6d229cf9812db3538a07c875093c1bb42875d8987e2fff9e985635544c21ee57201fdf19c896671707eacecb846d9ad9232127af8389efcb66bd0c897abb7ac2d412f2c542b489f343f4ee22f1218e8d515fd3d21632103ac2504c6eb375c0cf721307ae57592a7ab762f35771d6d76433fd942b19fa174a9b5c7e32ef88f554327800a342577e5cbe278015bbee253ad7a05a2ff77af78a63c1b4dd55b3827a82f2ecdc3df22cb4b37ef55fc92bb2b2f7c7d25cbdead50d8f4b1092659fb8759965c8cc0deb8f3eb0a258a8984b4ecacec3ebfceebbed046e80a1b98db7ef1e1016e1be1d7daf1098929d96e3d1f3d192f87b51159b1d1e8b42a556e27da5ef3b8e1aff27682ed7b36ff875e50d9b2080334aab543778fd9862e4fd6de24fd8a774ff159a73f8ae5965e3e34b207cc515176bd8c46382fcd8fe45b763dce18f188bf7a5e98ff4d94803baca486a9c2976e1b73e38f8b5b8cca1fbabed44cf0613af3cce63402577dfbee41fa8bf54989fbba530d6c55031037ee1dbc808ba397b26c0a4613fe66d354d14c01dd25c1ad43ae808e7fd6bdb399e649d8fcf24affc10874db6ecdc404808ef74bc220fd45dc79f820e8a1719057d9cf773e1eae2835a9958cf90ba7840bf2c9061cede8b0eeab2f1a166c396e6cd23ef586302dfa09e47710c87e914c665479bf004c3907df87d55a78c04a90c0c5f8a38f42caeacfd4290dec3037157f03e73af1d13f27b0ec8d5aa7d6aaa386dbb98ad69f71d6c5a33f9e0d992ecb9534f205d1a7a7abea3fbfa5128548f4cde64cbf42838b5fe6c390b0c4f7649ea16071dd93773a8e5b3930706ef06139f33cf82d303fa9ccbd189dd6b102b1ecd4967ae1bc4775e15fd670dd6dbe60a1a1c9f16b07b73c0545bfb9aa2499d77b51043a243e9487438592316ba3eb7bd29d729f69544484739753802125738d36626c2e1db13fe41e79355ebd1d45c02a3a32337ab072a45f80cc2fc10d6ee38062553104aff3e5aaccf4fd4acad502e970754986232a2daba477a9a2e0d0d7fcc0cbb277468d7e21c10b65ce5edd1cfacb0b1d50587429ae1c69a2a4cbb0ec8b9cd498925af1c45bab3a0195564695b845f4d707ba976da1244682de50373d3eaa752b754c7a4f4764b0515e0a26be319c26fadc297601af5754311cbd7aa1824ced6f092798f5f45e665a7dbc68bc86239caff2e331e0ffa33a5c2d75f4769582f453ff51783a0f840479ee042451373b56a8d8054404cf1de6ac7f8d12d9cd589a73dde06e5f7416b4064ddc69dd8ea004ca3b470184bd10761653d8066979c92a0cf8c52ce3481d5e49e3aaec9ecf0401c5e315f8f97ded5ef5432fa9fdbb798223842af69f1ba336ed705f448369e009601ff78237b996d45dbfee9c8e722bf16faf4d189a9edc8a8913c90055260bcbddf3dd4adce180c8ed05a7b6f5935d1855c617a94ffe11852fd6bed1fe956e793299110473a2bc943dfce63831e557890e0fe633ad87fe9dc9336fb714eafc6e64150cbe424193c8a004e0a55fe1f65db0c962c5bd347533a9570b4d92b77ffa654e43ddd3744bf62aacaca383b72a1152b0239608bdc7f39e6022d359ad9b86528771f4006789a8832120205a6cbb198353d30109ee5951691d74c4dbc052f226f79ea81c6cfe24f7143b0b124fa295e906e206164c75b52bbc5c9363954f040404d5a2788897b286e8fd4b3e4b4995c8386231a08bcfc65f300f97dfbccc40a8023f075d456859a3de5fcdf93e6e9c100fcb87fd5d28adc88acdb8be039656736dab3c9c3fa0f70f8ef3636c9f9ffe688ea0ca866a16a6bf265cdaf1151fa0467135cfb74ec12fdff86b4682a43a846b8e0de4164978068267dce869cf274d20876fd76431a4ea1c03b04f7b678a6af68893f853a59a1a6d06d00085bb2100e7cd446bbd1510564a06c36a700deed2998a953d2091f91a303a7eb8dac2850fdec4bc0e9dfb9265764df89341691f11bd905cd4fb1ba2d51f10305ed60893c1252fb25d5090ab1d915f64b76cecfb02f3c3dee490a14e44043f63f38fbc4bec32b085490e13a3d7791b70213b1d31e551d11b56f65d091970ea26b10bf66d1b807da14a029e605d1f3d8844abca029c520b961e3d2f44cfa3cbbd0c6665d09034a36e3aa16cab516c6bd3ee629dd1b3d2089355d2e5af03391b493b2ff1f3e338e106fd228940158fe5b0dacdd2e9e3ca205b7e4bada2fd5f9fbe1c9bdf3e0ca479ca30b3d5d28656c4072e4e04efe3642b292a6541a478b3b299acdccb2a1854b7cc76fa9aa3421657770f8a33c2be796d0253b8ae8217803ed16274d891c6c0a959445c7805e3772729c0775c6aa8509913307f765d153013a206c59bf7e365fbb51e779c199be953519eb2b2e3edd87f1266829d36c923a888d0953293133140d8edcd3c72a5ee4a859c30cbeb1506f4866408d7a0a66bc9f0d4bb0a2ede9523f559e641cb8ddceeab773e78e8a909ddf53881665ec1163cdf07caf6306e48f1cd4ceb3bd6e559b2f3d0a68bea9286a1c8971dd01e0103fcf77dd00cc138a12bbfa92816e48687471c08d84f3090e2459ffccdb6c4e6ab5708bdb001ed06823565ff6811834326c215d10498efca1233a890f57bcf5c0565cb7a7cb523c3963eb87a7932e03db54b4641d7d8c2a15fe53f969547d1a0d3120c8f7e0698de726e613839a1a4ea325ad949fb73a67ca50cce4b66e89ccbad25b9526d26e23dff7227e81fd3d148eba02dc616628a2bf5f02dd3b1f9d1b973944f203d540d706034845b5f0d29477936d653c7797f01c3b208f4a9b9f53687fac8934cd0714469c1bc7892d6177bfcb4e4a38a98c89999ca76bb32ed3898d16e0d8ee72cb17415cf2db741ee0398e1d307d38f517ccf4bb55c4a2beed7a28590ab85ebce3d39c6de22d75bd725843e00e6bb9f46679db3fb794fe1cd906251be9ed47767e674f3382031ae7d6b5783e7f12320b4d3c5c170d0006b956560acca872f3f665991efdc87243aad5922b36ba74595ba6ff5ac083b70bd81a2233d1e63c03d808219c5d4ae5257b74c34dd3c4cf9d2ece7acf0625de070251846ce1f5c8175e95e49a0f6222e885039283aade87a9ab25cc3ecf11aae21e7327396ebc9b2eb7059241672170e0da69b97448f5bffe166ffa1ca90f0a3ba199db970c9995b5c7f998513f2d84ba7d873fc7441ec68bc7e5b9e41e3017a56d32226539b6c66215a87d6e2d6a15b1af8302f20d5d3fe3192011ae72619e2d1a5b8c2b710d1b9146bc2647fe176df3136ad2b42d56063b8cc92287fda50dc651f04e6571597c7a89574ef8ad59bc4a6cff75cd7f0985b37a9ae11e9f3231a70b9436cb6fd6b9aefde3cdbc020ba9d31507a7c0284fce9bfc1d0a1eaf94724be5913707e4b7fea1f783115dba6f54d9588d6b802d710184b8bbbc496526c9422b2c37925272ce5e4c1b34e57a7b055c61ab08499cc442fa4eb93644e2b9c75c6b1cfd6cc9637c0d35424813dec3c3bec6c1409eb2a30040c81883972960576b3cc796434a7b5970e0e4b8de661edc10ade0f4f640f5a1e557ec10cede13e9f4da2bc13c6785ba66e38082beb32c44bfc7ff06cb8f12af731511a83755867b1e833f476f12378e8af482770a5f8088c915c500fa70d0a68c83699236734c41c9a680da9299d5549f0676b5e0823911f2de2414c84865037825f1bbcb8dc1fede5f21f979fc2c6324b292955a0bddd7f667da7706672e91a1357ba69d24648326b91c5608bf221431b7bfe2cb4d8c3b13857aeb25397ab1730ccff96df4a36dee49302c4b1056f668132258d105c6a46a06b26c9c09e2395d2e283d5077b78055ecfb5d1f125b136c365bbacadde345d22a88852981c0223dab37cdc3f29c22168725c47e90ca2800aef6af11808747ff0c351a46127a02c70609dc24c4e346334504db87c1782d4a2a4bc2e6e2796c152bb730441ba7c56d405e58f219bf4481816e46333e8cf4c7f23c17797e182ab71cb82946e0e9dac12f57dca2362e580995d69f8f71f5002476c064c14d3382e7cf7dc3feb27637e460e963294a98d40fafac856dda429ee312ed8940d9f724cbf365868d48c48c30373f963c72eeece8bf150f35b9ccf89a0358e7d2cb84fbd48f6a5cfdb1f4b9c2406933ff0229ac51bdddacc1788cbc3c320cec12683e7c6d215c603bcbf2994066d1179537149bdc22f80a8665ea0e5cc26abf1b83af662afc6b762cf547346034399e68633dc59bf30d05f1855d4f0f45bab7bb9cc6028733341713bfcda4e0bde6511b2d46791d193701342a9fd2f2084e6525980fef980c2f827c7d33281d83c120776cd512da45e0a2b809c2a570dbe4ac822e700c4096a5649190845ad26d32e19c0712807be6f3e263ef540b0cf2e9eb67838852cc35529b39abb75223da58f9390b47683bbd8b369a08fdf8dea962a4c8e41a5a5fbd71b66d520c8581c5a7de6f02d61ddfccf76f93b2d97ce5095f0a445f82e7eabb592585c20a649c8521f121b7c45a35a654d9c21679e8fa70a71c19dac9d29cd8a0371486e87f60a0c55a310b2e79ba67d62fb79e765e0e9748fbb078857bed60dece3f4922625899884c92a3849f8be50685203ded4b8390d2671be8d7da10959995cfd1dc9f3fbc36bbf770da66e5dbf6fd7259330a0cb711410c9af3d67766b9cc5d1b0df366ed6a6393c78be861c7099833e8a3ba853fcbcb3e5c1f530d836e0a0c8480e073d3c831e51881133fc3638eedc6242114c7edbe9f40ab66e0da63a09d40e155bf408228d33a9b4a537c80be3af6001df53fd17070b8650487e04bbeb7f1dc51021e468acf252162b97808cbc0eef6469a747639bafae88e8369b3e9285c8402daf29710edbb4bd1d3f674ef55d0a4c20ae38b39abf8b4a355d79e06a8c78659aaf70203f6c68093fb875a357402e8c3fa1d6f04b282f3f6ae669bcc075392ef9f2bed4107b65e9d1f37c2e58d83a9f9c096e3fa45e1f3ea147d15de127844bc3fa17c9d6ebcba5d7abb5a19106d85b54f1c26a1a90fea13332ee0a8f8c25115692e6b1edd5a5cede2278d6a44a27a7e8c1ae069d057d23e752c228d43d12bb8f8f4aaf6c5011bbadf4a5115a00410f2fc6a06f9edb6383bc9074536f44ed7c698c57f11a39a062a4aba4011ff6ac0b5da87ebc0204ef55c413797f8af54ecc0550d1105177ae039841cdebf6f9df0ba41a19b0f1c2760c6255e3092159b62e8260122f87ed610545af9e6ec67dfd315de6503e371c65427773bee7f3eb35217049f21cc69a3ee588685598e97e1722cbf7d65ab225478946a8c76f01ecc59747e2fa35973cea847a9a9636dd4889769ea1871d199ac20c111c54ea14f6fea65bc93d26dcd3bb42e84a0029fa602d53331d56cfcec149617d7f7d8f846bc161909d453ce22c621654046fb86a74b489df3e13e8bff5e1c91c20d155c1f95285f72879a82d351243fd8d6a78de7fbaa2c030e5344c45d62c524fb217146bff0012d120fe0c81014aca1efbac25f60f4b3c5cece8c7926f6ebf07fff8a3211a8d4cc0ca7597c34a56668bfe7204de0c9b867cfe8943d8f249b55dff725c5a602d743586bdacf33f436a82795f6dd43ac477799e6d9747bb60960262d2f7b7e8cbdc1a68d252bc27438eb21d397d656518387d1b41be684b3ea926fe812cf483745c0e74d15f0be30a3656694f6a22f882bebe86302b3e6851a9bcca99a242eb81cfefb98e72c3563d02fb3118ef5f2673ccfed4a59e3f240c5568266363aa359cd6b341adf5e881eafb0471f28c6938faab85f283d1d313030d1df5a1b8cdcee57e615930ed508fbf04f259dc2457e7c0c61e5c4ac1803798773a48021c6892174c3b6d75181fd7c047cf980cf71cac8a67ea636a0f256a27ee3e1fb3f4120577c76205841792e5117b04117529a35e092df9b5dcaef0ed2ea32668270ba27347f8ae276e93e68d0712d3651478188785c29df8d06fd409f7d3bfbbfe42da6fe6b6db3d7889c155b02c5286e208c2d48e9c4a8c37f6065535e72cce82516234b1fabde4e1c84275af688a89f24b6da969107ca7df7bed2f1e1355c147f3a69381e6d9171eaaefec8f0813adaab834c0edc47908adfc5fd12743398c75f7a30e12d970d26c275476e68a2c6420faf5814f493cc2447ac8358aa84de2ff7816f6d9c6b470fe19b2215f755eb2c2725eff729c44f6cd3f261feb6ab6067eb767424975b1ea6d0e9509be3304ea89529de01623f833f9c25e0f3d3ea86e7452a9ee5c980013dedc2129265e4884c673545d8d5c4c020e10b5f5ddf73f9214602dcd6bc1e39d3cb5b83958360ee02edfe327b92190d13f2a224d90ba8b4aeb8dedfcec3e41a8d0e8eb063fc2e4fbdeb4fad22657757cded09037cb6042ae6ef34deae166080b5ae842b82fa8d93216942007d55bd33aabc5f299b113a20a319e57689308d78703a5cd417f2e1a37e3585b349a66cb511f05caa83011c52e7331b32efef0164c7e64f74f487c2258f3fbd4a36a01977ea34b271d8fa7e845dfa179e5cf28cc0e56202f9cbd715b0887348a906ce48c0ba0912cf3d0b7220e869faf07082bd056fe564920c3f736f14f9070357bcd19b822ea0bcb498b1cc5500d0420f73230d8f43456b046132509adbdbd15b71ab7007521969bdceedb8d094c8b5971202fc2add706e9b686c31bd1c0efcd076d96a75b9c87443b9f2c06c31726294840d65d2e1d449dc6679e14ec0b8e125bd74a73ab1d2f8c3043e16095ebeb04c6a08795a9a501c9056a38c4b5b631598b4f739215d7761072eda045aaebcca25edc312fd6e2a3d2556826b8b2d57c34738bc50a0fb008dd01cbabb4540c42f4d506843d8e6a4d7b825ad24c18c568054587c4e861fef440b12c0e5869e47215967bfef0ad83d469df9c047767b1ca566b5814c6e2df2623046f36c738235bf353deb2e38b489507b830a41e8f0aade64eeab7a318b2ad473d1c030fde7022239f9b2688a14b44c948889c36dd274761c22b19fb5cc5c569cce5993057e62660878f7734d1f1102ef03cab90541d20e9948c4137808592522bd2841f78d94f4560e6fa9a6a30aa664095824e58c27b9d9162ff63eaf6e0ef04d3e1f0a73a2de402908a0b3ac6088ed81caf8d1d082a0786ba655e2b6ccc9dddf0a8cee7f4f9d9d9d11099832b6f12b646c0b5b50595ff23130db6a494705736e92b9d18368372b1af7df</script>
+  <div class="hbe hbe-content">
+    <div class="hbe hbe-input hbe-input-default">
+      <input class="hbe hbe-input-field hbe-input-field-default" type="password" id="hbePass">
+      <label class="hbe hbe-input-label hbe-input-label-default" for="hbePass">
+        <span class="hbe hbe-input-label-content hbe-input-label-content-default">请在这里输入密码，回车确认</span>
+      </label>
+    </div>
+  </div>
+</div>
+<script data-pjax src="/lib/hbe.js"></script><link href="/css/hbe.style.css" rel="stylesheet" type="text/css">]]></content>
+      <categories>
+        <category>有声书</category>
+      </categories>
+      <tags>
+        <tag>three_body</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>右键管理(右键获取当前路径下wsl对应路径)</title>
+    <url>/2022/01/21/%E5%8F%B3%E9%94%AE%E7%AE%A1%E7%90%86/</url>
+    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><script class="meting-secondary-script-marker" src="\assets\js\Meting.min.js"></script><p>以获取当前路径在wsl中对应路径为例</p>
+<span id="more"></span>
+
+<h2 id="制作路径转换脚本"><a href="#制作路径转换脚本" class="headerlink" title="制作路径转换脚本"></a>制作路径转换脚本</h2><p>创建一个新的名为path_converter.bat文件，用文本编辑器打开，写入如下内容:</p>
+<blockquote>
+<p>@echo off<br>set windows_path=%1</p>
+<p>set wsl_path=%windows_path:=/%<br>set wsl_path=%wsl_path:c:/=/mnt/c/%<br>set wsl_path=%wsl_path:d:/=/mnt/d/%<br>set wsl_path=%wsl_path:e:/=/mnt/e/%<br>set wsl_path=%wsl_path:f:/=/mnt/f/%<br>::set wsl_path=%wsl_path:”=%<br>::echo %wsl_path%<br>:: echo %wsl_path% | clip<br>rem remove spaces and line breaks<br>echo | set /p=”%wsl_path%” | clip</p>
+</blockquote>
+<h2 id="安装右键管理软件"><a href="#安装右键管理软件" class="headerlink" title="安装右键管理软件"></a>安装右键管理软件</h2><p><a href="RightMenuMgr.zip"><font color="#DC143C">下载地址</font></a></p>
+<p><img src="/2022/01/21/%E5%8F%B3%E9%94%AE%E7%AE%A1%E7%90%86/figure1.png#pic_center"></p>
+<p>右击增添拓展项</p>
+<blockquote>
+<p>菜单名称:复制WSL路径到剪切板<br>执行命令:”D:\path_converter\path_converter.bat” “%1”<br><img src="/2022/01/21/%E5%8F%B3%E9%94%AE%E7%AE%A1%E7%90%86/figure2.png#pic_center"></p>
+</blockquote>
+<p>同样的操作在所有文件中重复一次<br><img src="/2022/01/21/%E5%8F%B3%E9%94%AE%E7%AE%A1%E7%90%86/figure3.png#pic_center"></p>
+<h2 id="效果展示"><a href="#效果展示" class="headerlink" title="效果展示"></a>效果展示</h2><p><img src="/2022/01/21/%E5%8F%B3%E9%94%AE%E7%AE%A1%E7%90%86/figure4.png#pic_center"></p>
+]]></content>
+      <categories>
+        <category>计算机相关</category>
+      </categories>
+      <tags>
+        <tag>右键管理</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>含非标准残基的多肽对接</title>
+    <url>/2022/03/12/%E5%A4%9A%E8%82%BD%E5%AF%B9%E6%8E%A5/</url>
+    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><script class="meting-secondary-script-marker" src="\assets\js\Meting.min.js"></script><p>对含有磷酸丝氨酸多肽的对接方法</p>
+<span id="more"></span>
+
+<blockquote>
+<p>最近需要对接一个含非标准残基的多肽对接，一开始我以为多肽对接和常规小分子对接一样，可试了一下发现对接的结果是啥么玩意儿啊，完全不是我想要的样子。了解后才发现，常规的小分子对接程序面对多肽这样的大分子量体系准确度完全不能保证。那么能用蛋白蛋白对接程序吗？显然也不能。蛋白蛋白对接适用于两个单体蛋白结构已知的情况，而且这两个单体蛋白的三维结构相对“刚性”（这是其对接原理决定的）。几经寻找才发现多肽对接有其专属的一类程序——peptide docking.<br>找了几个相关程序后发现它们都只能对接天然氨基酸的多肽，而我的多肽恰巧有一个磷酸化修饰的残基。几经辗转终于找到了一个应对方案（ADFR组合flexpepdock）</p>
+</blockquote>
+<h2 id="ADFR对接只含天然残基的多肽"><a href="#ADFR对接只含天然残基的多肽" class="headerlink" title="ADFR对接只含天然残基的多肽"></a>ADFR对接只含天然残基的多肽</h2><p><a href="https://ccsb.scripps.edu/adfr/downloads/"><font color="#0000FF">下载链接</font></a></p>
+<p>我的多肽中含磷酸丝氨酸，这一步姑且将磷酸丝氨酸视作常规丝氨酸。<br>我使用的windows版，安装过程无脑下一步就行了（最后一步选择学术用户，这样可以使用全功能）。安装好后，环境变量也自动设置好了，下文用到的命令，cmd中可直接调用。</p>
+<h3 id="对受体蛋白和多肽质子化"><a href="#对受体蛋白和多肽质子化" class="headerlink" title="对受体蛋白和多肽质子化"></a>对受体蛋白和多肽质子化</h3><figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line">&gt; reduce receptor.pdb &gt; receptor_H.pdb</span><br><span class="line">&gt; reduce peptide.pdb &gt; peptide_H.pdb</span><br></pre></td></tr></table></figure>
+
+<h3 id="转为pdbqt格式"><a href="#转为pdbqt格式" class="headerlink" title="转为pdbqt格式"></a>转为pdbqt格式</h3><figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line">&gt; prepare_receptor -r receptor_H.pdb</span><br><span class="line">&gt; prepare_ligand -l peptide_H.pdb</span><br></pre></td></tr></table></figure>
+
+<h3 id="用图形化界面打开上一步生成的受体pdbqt文件"><a href="#用图形化界面打开上一步生成的受体pdbqt文件" class="headerlink" title="用图形化界面打开上一步生成的受体pdbqt文件"></a>用图形化界面打开上一步生成的受体pdbqt文件</h3><p><img src="/2022/03/12/%E5%A4%9A%E8%82%BD%E5%AF%B9%E6%8E%A5/fig1.png#pic_center"><br><img src="/2022/03/12/%E5%A4%9A%E8%82%BD%E5%AF%B9%E6%8E%A5/fig2.png#pic_center"><br><img src="/2022/03/12/%E5%A4%9A%E8%82%BD%E5%AF%B9%E6%8E%A5/fig3.png#pic_center"></p>
+<blockquote>
+<p>红框中fills一列显示了所有预测的可能的结合位点，勾选你所认为的可能结合位点。</p>
+</blockquote>
+<p><img src="/2022/03/12/%E5%A4%9A%E8%82%BD%E5%AF%B9%E6%8E%A5/fig4.png#pic_center"></p>
+<blockquote>
+<p>依据上述勾选的结合位点设置结合盒子</p>
+</blockquote>
+<p><img src="/2022/03/12/%E5%A4%9A%E8%82%BD%E5%AF%B9%E6%8E%A5/fig5.png#pic_center"></p>
+<blockquote>
+<p>计算并生成trg文件</p>
+</blockquote>
+<p><img src="/2022/03/12/%E5%A4%9A%E8%82%BD%E5%AF%B9%E6%8E%A5/fig6.png#pic_center"></p>
+<h3 id="开始对接"><a href="#开始对接" class="headerlink" title="开始对接"></a>开始对接</h3><figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line">&gt; adcp -t *.trg -s npisdvd -N <span class="number">100</span> -n <span class="number">2500000</span> -o prefixname -ref peptide_H.pdb</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>-t 读取上一步生成的trg文件<br>-s 输入多肽序列，小写代表以loop形式对接，大写代表以螺旋形式对接<br>-N 代表进行独立构象搜索的次数<br>-n 每次构象搜索进行评分次数<br>-o 输出文件的前缀名<br>-ref 输出打分参照对比的初始结构文件</p>
+</blockquote>
+<blockquote>
+<p>对接结束后，选择你觉得最合理的一种对接形式，进行下一步保留磷酸化修饰的对接。<br>将所选的最优构象多肽和受体蛋白同时用pymol打开，手动恢复原有磷酸化修饰的丝氨酸的磷酸化状态，删除氢原子，整体输出为一个pdb文件。<br>对输出的pdb文件用文本编辑器打开，保证受体蛋白处于A链，多肽属于B链。<br>确保磷酸修饰的丝氨酸的磷酸基团原子名称如下所示:<br><img src="/2022/03/12/%E5%A4%9A%E8%82%BD%E5%AF%B9%E6%8E%A5/fig7.png#pic_center"></p>
+</blockquote>
+<h2 id="打开flexpepdock"><a href="#打开flexpepdock" class="headerlink" title="打开flexpepdock"></a>打开flexpepdock</h2><blockquote>
+<p>这是一个在线服务器，是为数不多的支持含有非标准残基（仅限磷酸化的丝氨酸）的多肽对接程序</p>
+</blockquote>
+<p><a href="http://flexpepdock.furmanlab.cs.huji.ac.il/index.php"><font color="#0000FF">网页地址</font></a></p>
+<p><img src="/2022/03/12/%E5%A4%9A%E8%82%BD%E5%AF%B9%E6%8E%A5/fig8.png#pic_center"></p>
+]]></content>
+      <categories>
+        <category>计算机相关</category>
+      </categories>
+      <tags>
+        <tag>多肽对接</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>文件夹盘符映射</title>
+    <url>/2022/01/21/%E6%96%87%E4%BB%B6%E5%A4%B9%E7%9B%98%E7%AC%A6%E6%98%A0%E5%B0%84/</url>
+    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><script class="meting-secondary-script-marker" src="\assets\js\Meting.min.js"></script><p>对于一些路径较长且常用的文件夹可以将其映射到一个新的盘符，这样打开资源管理器就能直接看到</p>
+<span id="more"></span>
+
+<h2 id="复制要映射的路径"><a href="#复制要映射的路径" class="headerlink" title="复制要映射的路径"></a>复制要映射的路径</h2><p>比如我想要映射wsl所在路径，则拷贝: C:\Users\asus\AppData\Local\Packages\CanonicalGroupLimited.Ubuntu18.04onWindows_79rhkp1fndgsc\LocalState\rootfs</p>
+<h2 id="映射盘符"><a href="#映射盘符" class="headerlink" title="映射盘符"></a>映射盘符</h2><p><img src="/2022/01/21/%E6%96%87%E4%BB%B6%E5%A4%B9%E7%9B%98%E7%AC%A6%E6%98%A0%E5%B0%84/figure1.png#pic_center"></p>
+<p>红框内输入要映射的文件夹路径<br>对于wsl也可以简化为\wsl$\Ubuntu-18.04</p>
+<p><img src="/2022/01/21/%E6%96%87%E4%BB%B6%E5%A4%B9%E7%9B%98%E7%AC%A6%E6%98%A0%E5%B0%84/figure2.png#pic_center"></p>
+<h2 id="效果展示"><a href="#效果展示" class="headerlink" title="效果展示"></a>效果展示</h2><p><img src="/2022/01/21/%E6%96%87%E4%BB%B6%E5%A4%B9%E7%9B%98%E7%AC%A6%E6%98%A0%E5%B0%84/figure3.png#pic_center"></p>
+]]></content>
+      <categories>
+        <category>计算机相关</category>
+      </categories>
+      <tags>
+        <tag>盘符映射</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>恒定pH条件下的分子动力学模拟</title>
+    <url>/2022/04/30/CPHMD/</url>
+    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><script class="meting-secondary-script-marker" src="\assets\js\Meting.min.js"></script><p>…</p>
+<span id="more"></span>
+
+
+<blockquote>
+<p>自然界中往往存在一些对PH值敏感的蛋白，当我们想要探究这些蛋白在不同PH条件下构象变化时自然离不开MD的辅助。遗憾的是Gromacs暂不支持恒定PH条件下的模拟，因为这涉及到了蛋白表面残基质子化状态需要时刻改变。一种折衷的方法是：用<code>propka</code>等预测工具预测蛋白极性/可质子化残基的pka值（因为实际蛋白表面的pka值可能受到邻近残基的影响而发生偏移），然后根据想要模拟的PH环境，自主确定各个可质子化残基质子化状态（比如某个残基pKa=4，pH环境为7，那么这个残基自然是处于离去质子的解离状态）。然后修改对应pdb文件中的残基名，比如脱去质子的CYS改名为CYM（这个问题文末有提及）。这种方法存在的最大缺点在于：质子化状态一但设定好就会一成不变，这和实际情况显然是不符的。因此我们今天不介绍这种方法，而是介绍在Amber中的实现方法。<br><strong>示例文件关注公众号“grosetta”,后台回复”<font color="#0000FF">ph</font>“自取</strong>。</p>
+</blockquote>
+<h2 id="1-准备结构"><a href="#1-准备结构" class="headerlink" title="1. 准备结构"></a>1. 准备结构</h2><blockquote>
+<p>有这样一张表(下图所示)，罗列了常见质子化残基，包括<code>ASP、GLU、HIS、CYS、LYS、TYR</code>. 第三列数据对应它们各自的pKa值。第二列对应它们在恒定PH环境模拟时Amber识别的名字，如果想让Amber在模拟时对某个残基上面的质子化状态”多多关照”,总得披上”马甲”好让Amber认识它吧。比如我想要模拟PH=7的环境，查看下表可以看出<code>ASP、GLU、HIS</code>在此条件下质子会发生解离，那么就把pdb文件中它们的名称改成对应的”马甲”。<code>ASP</code>→<code>AS4</code>、<code>GLU</code>→<code>GL4</code>、<code>HIS</code>→<code>HIP</code></p>
+</blockquote>
+<p><img src="/2022/04/30/CPHMD/fig1.png#pic_center"></p>
+<p>本次就以11个氨基酸长度的小肽<code>test.pdb</code>在pH为7的环境下模拟为例：</p>
+<h3 id="第一步，修改pdb文件"><a href="#第一步，修改pdb文件" class="headerlink" title="第一步，修改pdb文件"></a>第一步，修改pdb文件</h3><blockquote>
+<p>首先修改需要更换“马甲”的残基名，这里我们做了<code>ASP</code>→<code>AS4</code>、<code>GLU</code>→<code>GL4</code>修改，由于没有HIS残基，所以就不做考虑。此外该分子种有两个距离较靠近的CYS，我们想让他们之间成二硫键，所以修改做出修改：<code>CYS</code>→<code>CYX</code>。修改后的文件名为<code>test_fix.pdb</code></p>
+</blockquote>
+<p><img src="/2022/04/30/CPHMD/fig2.png#pic_center" alt="ASP→AS4名称更换示意"></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#用pdb4amber不加氢，补全缺失原子，连接二硫键</span></span><br><span class="line">pdb4amber -i test_fix.pdb --nohyd -o test_fix2.pdb</span><br><span class="line"><span class="comment">#不知道什么原因pdb4amber除氢总是失败，只能用下条命令自行除去了</span></span><br><span class="line">grep -v <span class="string">&#x27;.............H&#x27;</span> test_fix2.pdb &gt; test_fix3.pdb</span><br></pre></td></tr></table></figure>
+<p>下图所示，我们想要连接的二硫键并没有形成，什么原因呢？这是因为只有硫原子间距小于2.5Å时<code>pdb4amber</code>才会自动连接。不过也没关系，后面我们还能在构建拓扑时强制将它们连上。</p>
+<p><img src="/2022/04/30/CPHMD/fig3.png#pic_center"></p>
+<h3 id="第二步，构建拓扑"><a href="#第二步，构建拓扑" class="headerlink" title="第二步，构建拓扑"></a>第二步，构建拓扑</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#唤醒tleap程序</span></span><br><span class="line">tleap</span><br><span class="line"><span class="comment">#加载constph力场（底层用的amber_ff10力场，同时于蛋白而言等价于ff99SB）</span></span><br><span class="line"><span class="built_in">source</span> leaprc.constph</span><br><span class="line"><span class="built_in">source</span> leaprc.water.tip3p  <span class="comment">#为后面的抗衡离子添加力场</span></span><br><span class="line"><span class="comment">#加载修改好的pdb</span></span><br><span class="line">mol = loadPDB test_fix3.pdb</span><br><span class="line"><span class="comment">#连接二硫键</span></span><br><span class="line"><span class="comment">#遵循语法bond &lt;原子1&gt; &lt;原子2&gt; [bondtype]</span></span><br><span class="line"><span class="comment">#bondtype分三类：“-”单键、“=”双键、“#”三键、“:”芳香键,若不指定则默认是单键</span></span><br><span class="line">bond mol.4.SG mol.8.SG </span><br><span class="line"><span class="comment">#维持体系电中性</span></span><br><span class="line">addions mol Cl- 0</span><br><span class="line">addions mol Na+ 0</span><br><span class="line"><span class="comment">#保存拓扑、坐标</span></span><br><span class="line">saveAmberParm mol test.prmtop test.inpcrd</span><br><span class="line"><span class="comment">#退出tleap程序</span></span><br><span class="line">quit</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>注意，这里我们构建拓扑时没有添加水分子，这是因为本例要使用的是’隐式水‘模型。’隐式水‘不是真正的水分子，你可以把它理解为一个个数据点。启用’隐式水‘模型的参数为<code>icnstph=1</code>,需要将它添加到后文用到的以<code>*.in</code>为后缀的文件中。</p>
+</blockquote>
+<h3 id="第三步，准备恒定pH输入文件-cpin-file"><a href="#第三步，准备恒定pH输入文件-cpin-file" class="headerlink" title="第三步，准备恒定pH输入文件(cpin file)"></a>第三步，准备恒定pH输入文件(cpin file)</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#因为本例中我们只考虑了GLU、ASP的质子化状态改变，所以resname后面的参数改为它们对应的&#x27;马甲&#x27;——GL4、AS4</span></span><br><span class="line">cpinutil.py -resnames GL4 AS4 -p test.prmtop -o test.cpin</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-模拟"><a href="#2-模拟" class="headerlink" title="2.模拟"></a>2.模拟</h2><h3 id="第一步，EM"><a href="#第一步，EM" class="headerlink" title="第一步，EM"></a>第一步，EM</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#em.in文件在分享文件中的em文件夹内</span></span><br><span class="line">pmemd -O -i em/em.in -p test.prmtop -c test.inpcrd -o em/test_min.mdout -r em/test_min.rst -ref test.inpcrd -cpin test.cpin -inf em/em_mdinfo</span><br></pre></td></tr></table></figure>
+
+<h3 id="第二步，体系加热"><a href="#第二步，体系加热" class="headerlink" title="第二步，体系加热"></a>第二步，体系加热</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#heat.in文件在分享文件中的heat文件夹内</span></span><br><span class="line">pmemd -O -i heat/heat.in -p test.prmtop -c em/test_min.rst -o heat/test_heat.mdout -r heat/test_heat.rst -ref em/test_min.rst -cpin test.cpin -inf heat/heat_mdinfo</span><br></pre></td></tr></table></figure>
+
+<h3 id="第三步，预平衡"><a href="#第三步，预平衡" class="headerlink" title="第三步，预平衡"></a>第三步，预平衡</h3><blockquote>
+<ul>
+<li>这一步<code>*in</code>文件里需要添加或调整参数<code>solvph=</code>, <code>ntcnstph=</code>。</li>
+<li><code>solvph=</code>设定体系pH值，<code>ntcnstph=</code> 设置每隔多少步监测一次所选残基质子化状态。要注意的是，amber每次只能监测一个残基的状态，也就是说所选“滴定残基”(即需要质子化状态改变的残基）数越多，于单个残基而言监测间隔越长。这就需要我们进行适当取舍。amber官方举的例子：当选取滴定残基数为10时，监测步长设为5得到的结果比较好。可见即便amber可以模拟恒定pH条件，但这也是有限制的。本例中我们选取的滴定残基数总共就两个，所以<code>ntcnstph=</code>可以设得比较大，我设定为25。<em>（ps:后来才发现前面设置了三个“滴定残基”，不过影响应该不大）</em></li>
+</ul>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#pr.in文件在分享文件中的pr文件夹内</span></span><br><span class="line">pmemd -O -i pr/pr.in -p test.prmtop -c heat/test_heat.rst -o pr/test_pr.mdout -cpin test.cpin -r pr/test_pr.rst -cpout pr/test_pr.cpout -cprestrt pr/test_pr.cpin -inf pr/pr_mdinfo</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>本步输出的<code>test_pr.cpin</code>是<code>test.cpin</code>文件更新版。在预平衡中，“滴定残基”质子化状态发生了改变，所以需要将更新后的信息保存到新结果中，以供下一步成品模拟调用。  </p>
+</blockquote>
+<p><strong>无关紧要的内容</strong>👇👇👇</p>
+<hr>
+<p>如下图所示展示了Amber计算各种质子化状态之间的相对自由能差的原理。绿色区域的各种质子化状态的自由能在模拟过程中（t0）存入以<code>*cpin</code>为后缀的文件中。在当质子化状态又一次发生改变[下图红色区域]时(t0+Δt)依照下方公式即可计算出残基质子化前后自由能的变换。</p>
+<p><img src="/2022/04/30/CPHMD/fig4.png#pic_center" alt="Amber计算各种质子化状态之间的相对自由能差 原理示意图"></p>
+<hr>
+<p><strong>无关紧要的内容</strong>👆👆👆</p>
+<h3 id="第四步，成品模拟"><a href="#第四步，成品模拟" class="headerlink" title="第四步，成品模拟"></a>第四步，成品模拟</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#md.in文件在分享文件中的md文件夹内</span></span><br><span class="line">pmemd -O -i md/md.in -p test.prmtop -c pr/test_pr.rst -o md/test_md.mdout -cpin pr/test_pr.cpin -r md/test_md.rst -x md/test_md.nc -cpout md/test_md.cpout -cprestrt md/test_md.cpin -inf md/md_mdinfo</span><br></pre></td></tr></table></figure>
+
+<h2 id="3-结果分析"><a href="#3-结果分析" class="headerlink" title="3.结果分析"></a>3.结果分析</h2><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#结果输出到analyse文件夹内</span></span><br><span class="line">cphstats -i md/test_md.cpin md/test_md.cpout -o analyse/calcpka.dat --population analyse/populations.dat</span><br></pre></td></tr></table></figure>
+<blockquote>
+<ul>
+<li><code>calcpka.dat</code>文件中记录了每个滴定残基的预测pKa值及质子化存在时间比率等信息。本例由于运行时间很短，所以两个ASP质子化状态未改变，所以pKa没有预测值。</li>
+<li><code>populations.dat</code>文件记录了每个残基各种质子化状态及相应状态数量占比。</li>
+</ul>
+</blockquote>
+<p>除此之外，你也可以按照常规步骤分析其他的性质，比如构象变化、主成分、自由能等。</p>
+<h2 id="写在最后-👇👇👇"><a href="#写在最后-👇👇👇" class="headerlink" title="写在最后 👇👇👇"></a><strong>写在最后</strong> 👇👇👇</h2><hr>
+<p>::: block-1</p>
+<ul>
+<li>关于残基的”马甲”</li>
+</ul>
+<blockquote>
+<p>在Amber中，对于一些标准残基的特殊状态，我们往往用另一种名字替代。这样Amber才能识别，并施加适当的力场参数。大体有如下几种情况： </p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th align="center">原残基名</th>
+<th align="center">“马甲”</th>
+<th align="left">描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">CYS</td>
+<td align="center">CYX</td>
+<td align="left">半胱氨酸成二硫键</td>
+</tr>
+<tr>
+<td align="center">CYS</td>
+<td align="center">CYM</td>
+<td align="left">半胱氨酸和金属螯合/或用于恒定pH模拟的滴定碱基</td>
+</tr>
+<tr>
+<td align="center">HIS</td>
+<td align="center">HIE</td>
+<td align="left">见下图描述</td>
+</tr>
+<tr>
+<td align="center">HIS</td>
+<td align="center">HID</td>
+<td align="left">见下图描述</td>
+</tr>
+<tr>
+<td align="center">HIS</td>
+<td align="center">HIP</td>
+<td align="left">见下图描述/同时用于恒定pH模拟的滴定碱基</td>
+</tr>
+<tr>
+<td align="center">ASP</td>
+<td align="center">AS4</td>
+<td align="left">可用于恒定pH模拟的滴定碱基</td>
+</tr>
+<tr>
+<td align="center">GLU</td>
+<td align="center">GL4</td>
+<td align="left">可用于恒定pH模拟的滴定碱基</td>
+</tr>
+</tbody></table>
+<p>:::</p>
+<p><img src="/2022/04/30/CPHMD/fig5.png#pic_center"></p>
+]]></content>
+      <categories>
+        <category>计算机相关</category>
+      </categories>
+      <tags>
+        <tag>amber</tag>
       </tags>
   </entry>
 </search>
