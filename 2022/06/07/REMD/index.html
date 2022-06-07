@@ -30,11 +30,11 @@
 <li>以每个副本预平衡后的终构象作为起始分别开始对应温度下的成品模拟。</li>
 </ol>
 <p>实现上述过程并不复杂，我为大家提供了运行脚本：</p>
-<p>关注公众号:<font color="#DC143C">grosetta</font>, 后台回复“<font color="#000066">REMD</font>”自取（以溶菌酶模拟为例）</p>
+<p><strong>关注公众号:<font color="#DC143C">grosetta</font>, 后台回复“<font color="#1E90FF">REMD</font>”自取（以溶菌酶模拟为例）</strong></p>
 <h3 id="1、模型构建-EM"><a href="#1、模型构建-EM" class="headerlink" title="1、模型构建+EM"></a>1、模型构建+EM</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> REMD</span><br><span class="line">chmod 777 run.sh</span><br><span class="line">./run.sh             </span><br></pre></td></tr></table></figure>
 <p>运行完后，在主文件夹中会出现模拟后的文件（后面不需要的都自动删除了），文件1EM.gro及topol.top是必须存在的。</p>
 <p>用编辑器打开1EM.gro及topol.top查看蛋白总原子数及水总分子数。</p>
-<h3 id="2、副本温度取值确定"><a href="#2、副本温度取值确定" class="headerlink" title="2、副本温度取值确定"></a>2、副本温度取值确定</h3><p>打开网址：<br>(<font color="#000066"><a target="_blank" rel="noopener" href="http://virtualchemistry.org/remd-temperature-generator/">http://virtualchemistry.org/remd-temperature-generator/</a></font>)(<a target="_blank" rel="noopener" href="http://virtualchemistry.org/remd-temperature-generator/">http://virtualchemistry.org/remd-temperature-generator/</a>)</p>
+<h3 id="2、副本温度取值确定"><a href="#2、副本温度取值确定" class="headerlink" title="2、副本温度取值确定"></a>2、副本温度取值确定</h3><p>打开网址：<br><font color="#1E90FF"><a target="_blank" rel="noopener" href="http://virtualchemistry.org/remd-temperature-generator/">http://virtualchemistry.org/remd-temperature-generator/</a></font></p>
 <p><img src="/2022/06/07/REMD/fig2.png#pic_center" alt="主页面"></p>
 <p>其中：</p>
 <ul>
